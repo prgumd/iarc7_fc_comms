@@ -14,8 +14,9 @@
 #include "MspConf.hpp"
 #include "iarc7_msgs/FlightControllerRx.h"
 
+using namespace FcComms;
 
-MspFcComms::MspFcComms() : fc_serial_(NULL)
+MspFcComms::MspFcComms() : fc_serial_(nullptr)
 {
     // Empty, nothing to do for now.
 }
@@ -25,9 +26,9 @@ MspFcComms::~MspFcComms()
     delete fc_serial_;
 }
 
-void MspFcComms::subscribeControl()
+void MspFcComms::subscribeControl(ros::NodeHandle nh)
 {
-    rc_subscriber = nh_.subscribe("fc_control", 100, &MspFcComms::sendFcRx, this);
+    rc_subscriber = nh.subscribe("fc_control", 100, &MspFcComms::sendFcRx, this);
 }
 
 void MspFcComms::sendFcRx(const iarc7_msgs::FlightControllerRx::ConstPtr& rx)
@@ -36,53 +37,53 @@ void MspFcComms::sendFcRx(const iarc7_msgs::FlightControllerRx::ConstPtr& rx)
 }
 
 // Disconnect from FC, should be called before destructor.
-CommonFcComms::FcCommsReturns MspFcComms::disconnect()
+FcCommsReturns MspFcComms::disconnect()
 {
     ROS_INFO("Disconnecting from FC");
 
     // Handle each connection state seperately.
     switch(fc_comms_status_)
     {
-        case kConnected:
+        case FcCommsStatus::kConnected:
             fc_serial_->close();
             break;
 
-        case kConnecting:
+        case FcCommsStatus::kConnecting:
             if(fc_serial_->isOpen())
             {
                 fc_serial_->close();
             }
 
-        case kDisconnected:
+        case FcCommsStatus::kDisconnected:
             break;
 
         default:
             ROS_ERROR("FC_Comms has undefined state.");
-            return kReturnError;
+            return FcCommsReturns::kReturnError;
     }
 
-    fc_comms_status_ = kDisconnected;
-    return kReturnOk;
+    fc_comms_status_ = FcCommsStatus::kDisconnected;
+    return FcCommsReturns::kReturnOk;
 }
 
 
-CommonFcComms::FcCommsReturns MspFcComms::connect()
+FcCommsReturns MspFcComms::connect()
 {
     try
     {
         ROS_INFO("FC_Comms beginning connection");
-        fc_comms_status_ = kConnecting;
+        fc_comms_status_ = FcCommsStatus::kConnecting;
 
         // Find the flight controller by the hardware ID.
         std::string serial_port;
-        if(findFc(serial_port) == kReturnError)
+        if(findFc(serial_port) == FcCommsReturns::kReturnError)
         {
-            fc_comms_status_= kDisconnected;
-            return kReturnError;
+            fc_comms_status_= FcCommsStatus::kDisconnected;
+            return FcCommsReturns::kReturnError;
         }
 
         // If connect is being called again be sure to free memory.
-        if(fc_serial_ != NULL)
+        if(fc_serial_ != nullptr)
         {
             delete fc_serial_;
         }
@@ -94,25 +95,25 @@ CommonFcComms::FcCommsReturns MspFcComms::connect()
         if(fc_serial_->isOpen() == false)
         {
             ROS_WARN("Serial port not open.");
-            fc_comms_status_= kDisconnected;
-            return kReturnError;
+            fc_comms_status_= FcCommsStatus::kDisconnected;
+            return FcCommsReturns::kReturnError;
         }
 
         ROS_INFO("FC_Comms Connected to FC");
-        fc_comms_status_ = kConnected;
+        fc_comms_status_ = FcCommsStatus::kConnected;
 
-        return kReturnOk;
+        return FcCommsReturns::kReturnOk;
     }
     // Catch if there is an error making the connection.
     catch(const std::exception& e)
     {
-        fc_comms_status_ = kDisconnected;
+        fc_comms_status_ = FcCommsStatus::kDisconnected;
         ROS_ERROR("Exception: %s", e.what());
-        return kReturnError;
+        return FcCommsReturns::kReturnError;
     }
 }
 
-CommonFcComms::FcCommsReturns MspFcComms::findFc(std::string& serial_port)
+FcCommsReturns MspFcComms::findFc(std::string& serial_port)
 {
     // List of serial ports
     std::vector<serial::PortInfo> devices = serial::list_ports();
@@ -138,43 +139,43 @@ CommonFcComms::FcCommsReturns MspFcComms::findFc(std::string& serial_port)
     if(found == false)
     {
         ROS_WARN("FC_comms did not find target device.");
-        return kReturnError;
+        return FcCommsReturns::kReturnError;
     }
 
-    return kReturnOk;
+    return FcCommsReturns::kReturnOk;
 }
 
-CommonFcComms::FcCommsReturns MspFcComms::getStatus(uint8_t& armed, uint8_t& auto_pilot, uint8_t& failsafe)
+FcCommsReturns MspFcComms::getStatus(uint8_t& armed, uint8_t& auto_pilot, uint8_t& failsafe)
 {
     // Stubbed should send a message to get the flight controller status and update it.
-    return kReturnOk;
+    return FcCommsReturns::kReturnOk;
 }
 
-CommonFcComms::FcCommsReturns MspFcComms::getBattery(float& voltage)
+FcCommsReturns MspFcComms::getBattery(float& voltage)
 {
     // Stubbed should construct message and
     // return sendMessage<BatteryUpdate>();
-    return kReturnOk;
+    return FcCommsReturns::kReturnOk;
 }
 
-CommonFcComms::FcCommsReturns MspFcComms::handleComms()
+FcCommsReturns MspFcComms::handleComms()
 {
     // Check Connection
     // Check that the serial port is still open.
     if(fc_serial_->isOpen() == false)
     {
         ROS_WARN("FC serial port closed");
-        fc_comms_status_ = kDisconnected;
-        return kReturnError;
+        fc_comms_status_ = FcCommsStatus::kDisconnected;
+        return FcCommsReturns::kReturnError;
     }
 
-    return kReturnOk;
+    return FcCommsReturns::kReturnOk;
 }
 
 template<typename T>
-CommonFcComms::FcCommsReturns MspFcComms::sendMessage(T& message)
+FcCommsReturns MspFcComms::sendMessage(T& message)
 {
-    if(fc_comms_status_ == kConnected)
+    if(fc_comms_status_ == FcCommsStatus::kConnected)
     {
         // Send a message
         // Check for errors
