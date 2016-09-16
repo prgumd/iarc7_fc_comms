@@ -14,56 +14,66 @@
 #include "serial/serial.h"
 #include "iarc7_msgs/FlightControllerRx.h"
 
-
-// Inherit from CommonFcComms to get the stuff any Fc is required to do.
-class MspFcComms : public CommonFcComms
+namespace FcComms
 {
-public:
-    MspFcComms();
-    ~MspFcComms();
+    // Inherit from CommonFcComms to get the stuff any Fc is required to do.
+    class MspFcComms
+    {
+    public:
+        MspFcComms();
+        ~MspFcComms();
 
-protected:
+        // Used to find and connect to the serial port
+        FcCommsReturns connect();
 
-    // Used to find and connect to the serial port
-    virtual CommonFcComms::FcCommsReturns connect();
+        // Disconnect from FC, should be called before destructor.
+        FcCommsReturns disconnect();
 
-    // Disconnect from FC, should be called before destructor.
-    virtual CommonFcComms::FcCommsReturns disconnect();
+        // Subscribe to the flight controller control topic
+        void subscribeControl(ros::NodeHandle nh);
 
-    // Subscribe to the flight controller control topic
-    virtual void subscribeControl();
+        // Handle periodically updating polled info.
+        FcCommsReturns handleComms();
 
-    // Handle periodically updating polled info.
-    virtual CommonFcComms::FcCommsReturns handleComms();
+        // Get the flight status of the FC.
+        FcCommsReturns getStatus(uint8_t& armed, uint8_t& auto_pilot, uint8_t& failsafe);
 
-    // Get the flight status of the FC.
-    virtual CommonFcComms::FcCommsReturns getStatus(uint8_t& armed, uint8_t& auto_pilot, uint8_t& failsafe);
+        // Get the battery voltage of the FC.
+        FcCommsReturns getBattery(float& voltage);
 
-    // Get the battery voltage of the FC.
-    virtual CommonFcComms::FcCommsReturns getBattery(float& voltage);
+        // Subscriber for FC RC stick values
+        ros::Subscriber rc_subscriber;
 
-    // Subscriber for FC RC stick values
-    ros::Subscriber rc_subscriber;
+        // Getter for current connection status
+        inline const FcCommsStatus getConnectionStatus()
+        {
+            return fc_comms_status_;
+        }
 
-private:
-    // Don't allow the copy constructor or assignment.
-    MspFcComms(const CommonFcComms& rhs);
-    MspFcComms& operator=(const CommonFcComms& rhs);
+    private:
+        // Don't allow the copy constructor or assignment.
+        MspFcComms(const MspFcComms& rhs) = delete;
+        MspFcComms& operator=(const MspFcComms& rhs) = delete;
 
-    // Find the FC from a list of serial ports using its hardware ID.
-    static CommonFcComms::FcCommsReturns findFc(std::string& serial_port);
+        // Find the FC from a list of serial ports using its hardware ID.
+        FcCommsReturns findFc(std::string& serial_port);
 
-    // Connect to the serial port and identify FC.
-    CommonFcComms::FcCommsReturns connectFc();
+        // Connect to the serial port and identify FC.
+        FcCommsReturns connectFc();
 
-    // Send the flight controller RX values
-    void sendFcRx(const iarc7_msgs::FlightControllerRx::ConstPtr& rx);
+        // Send the flight controller RX values
+        void sendFcRx(const iarc7_msgs::FlightControllerRx::ConstPtr& rx);
 
-    // Send message using the MSP protocol
-    template<typename T>
-    CommonFcComms::FcCommsReturns sendMessage(T& message);
+        // Send message using the MSP protocol
+        template<typename T>
+        FcCommsReturns sendMessage(T& message);
 
-    // Serial object used to communicate with FC
-    serial::Serial* fc_serial_;
-};
+        // Serial object used to communicate with FC
+        serial::Serial* fc_serial_;
+
+        // State of communication with flight controller
+        FcCommsStatus fc_comms_status_ = FcCommsStatus::kDisconnected;
+    };
+} // End namspace
+
 #endif

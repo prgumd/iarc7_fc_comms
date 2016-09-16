@@ -6,8 +6,9 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
- #include <ros/ros.h>
- #include "MspFcComms.hpp"
+#include <ros/ros.h>
+#include "CommonFcComms.hpp"
+#include "MspFcComms.hpp"
 
 int main(int argc, char **argv)
 {
@@ -15,11 +16,11 @@ int main(int argc, char **argv)
 
     ROS_INFO("FC_comms begin");
 
-    MspFcComms fc;
+    CommonFcComms<MspFcComms>& fc = CommonFcComms<MspFcComms>::getInstance();
 
     (void)fc.init();
 
-    if(fc.run(argc, argv) != MspFcComms::kReturnOk)
+    if(fc.run(argc, argv) != FcCommsReturns::kReturnOk)
     {
         ROS_ERROR("FC Node exited with error");
         return 1;
