@@ -12,7 +12,10 @@
 #include "CommonConf.hpp"
 #include "iarc7_msgs/UavControl.h"
 #include "MspConf.hpp"
+#include "MspCommands.hpp"
 #include "serial/serial.h"
+
+using namespace FcComms;
 
 namespace FcComms
 {
@@ -169,6 +172,13 @@ namespace FcComms
             return FcCommsReturns::kReturnError;
         }
 
+        // Try sending an ident request
+        MSP_IDENT ident;
+        sendMessage<MSP_IDENT>(ident);
+        uint8_t * const results = ident.response();
+        results[8] = '\0';
+        ROS_INFO("%s", ident.response());
+
         return FcCommsReturns::kReturnOk;
     }
 
@@ -177,13 +187,53 @@ namespace FcComms
     {
         if(fc_comms_status_ == FcCommsStatus::kConnected)
         {
-            // Send a message
-            // Check for errors
+            // Check length of data section
+            if(message.data_length() > FcCommsMspConf::kMspMaxDataLength)
+            {
+                ROS_ERROR("FC_Comms data section > kMspMaxDataLength was attempted.");
+                return FcCommsReturns::kReturnError;
+            }
+
+            // Add the header, data_length, and message code
+            uint8_t packet[FcCommsMspConf::kMspNonDataLength + message.data_length()];
+            uint8_t const * const data = message.data();
+            packet[0] = '$';
+            packet[1] = 'M';
+            packet[2] = '<';
+            packet[3] = message.data_length();
+            packet[4] = message.message_id();
+            
+            // Start off checksum calculation
+            uint8_t checksum(message.data_length() ^ message.message_id());
+
+            // Copy data into message and finish calculating checksum
+            for(int i = 0; i < message.data_length(); i++)
+            {
+                packet[FcCommsMspConf::kMspPacketDataOffset + i] = data[i];
+                checksum ^= data[i];
+            }
+
+            // Add checksum to packet
+            packet[FcCommsMspConf::kMspPacketDataOffset + message.data_length()] = checksum;
+
+            try
+            {
+                fc_serial_->write(packet, FcCommsMspConf::kMspNonDataLength + message.data_length());
+            }
+            // Catch if there is an error writing
+            catch(const std::exception& e)
+            {
+                ROS_ERROR("FC_Comms error sending MSP packet");
+                ROS_ERROR("Exception: %s", e.what());
+                return FcCommsReturns::kReturnError;
+            }
+
+            // Now receive
+
         }
         else
         {
-            ROS_WARN("Attempted to send FC message without being connected: %s", message.kType);
+            ROS_WARN("Attempted to send FC message without being connected, message id: %d", message.message_id());
         }
     }
-
 }
