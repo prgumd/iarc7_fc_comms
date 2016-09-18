@@ -26,12 +26,7 @@ MspFcComms::~MspFcComms()
     delete fc_serial_;
 }
 
-void MspFcComms::subscribeControl(ros::NodeHandle nh)
-{
-    rc_subscriber = nh.subscribe("fc_control", 100, &MspFcComms::sendFcRx, this);
-}
-
-void MspFcComms::sendFcRx(const iarc7_msgs::FlightControllerRx::ConstPtr& rx)
+void MspFcComms::sendFcAngles(float pitch, float yaw, float roll)
 {
     // Send out the rx values using sendMessage.
 }

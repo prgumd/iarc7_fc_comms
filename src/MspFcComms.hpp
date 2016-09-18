@@ -29,9 +29,6 @@ namespace FcComms
         // Disconnect from FC, should be called before destructor.
         FcCommsReturns disconnect();
 
-        // Subscribe to the flight controller control topic
-        void subscribeControl(ros::NodeHandle nh);
-
         // Handle periodically updating polled info.
         FcCommsReturns handleComms();
 
@@ -41,14 +38,14 @@ namespace FcComms
         // Get the battery voltage of the FC.
         FcCommsReturns getBattery(float& voltage);
 
-        // Subscriber for FC RC stick values
-        ros::Subscriber rc_subscriber;
-
         // Getter for current connection status
         inline const FcCommsStatus getConnectionStatus()
         {
             return fc_comms_status_;
         }
+
+        // Send the flight controller RX values
+        void sendFcAngles(float pitch, float yaw, float roll);
 
     private:
         // Don't allow the copy constructor or assignment.
@@ -60,9 +57,6 @@ namespace FcComms
 
         // Connect to the serial port and identify FC.
         FcCommsReturns connectFc();
-
-        // Send the flight controller RX values
-        void sendFcRx(const iarc7_msgs::FlightControllerRx::ConstPtr& rx);
 
         // Send message using the MSP protocol
         template<typename T>

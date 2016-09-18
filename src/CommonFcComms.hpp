@@ -12,6 +12,7 @@
 #include <ros/ros.h>
 #include "std_msgs/Float32.h"
 #include "iarc7_msgs/FlightControllerStatus.h"
+#include "iarc7_msgs/UavControl.h"
 #include "CommonConf.hpp"
 
 namespace FcComms{
@@ -64,8 +65,14 @@ namespace FcComms{
         // Callback to update the sensors on the FC
         void updateSensors(const ros::TimerEvent&);
 
+        // Send FC angles
+        void sendFcAngles(const iarc7_msgs::UavControl::ConstPtr& message);
+
         // Just use the default constructor
         T flightControlImpl_;
+
+        // Subscriber for UavAngle values
+        ros::Subscriber uav_angle_subscriber;
     };
 }
 
@@ -82,6 +89,14 @@ CommonFcComms<T>& CommonFcComms<T>::getInstance()
     return *instance;
 }
 
+// Pass a message to the impl
+template<class T>
+void CommonFcComms<T>::sendFcAngles(const iarc7_msgs::UavControl::ConstPtr& message)
+{
+    flightControlImpl_.sendFcAngles(message->pitch_degrees, message->yaw_degrees, message->roll_degrees);
+}
+
+
 // Use to connect to topics
 template<class T>
 FcCommsReturns CommonFcComms<T>::init()
@@ -90,8 +105,7 @@ FcCommsReturns CommonFcComms<T>::init()
 
     battery_publisher = nh_.advertise<std_msgs::Float32>("fc_battery", 50);
     status_publisher = nh_.advertise<iarc7_msgs::FlightControllerStatus>("fc_status", 50);
-
-    flightControlImpl_.subscribeControl(nh_);
+    uav_angle_subscriber = nh_.subscribe("uav_control", 100, &CommonFcComms<T>::sendFcAngles, this);
 
     ROS_INFO("FC Comms registered and subscribed to topics");
 
