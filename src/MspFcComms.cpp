@@ -78,6 +78,7 @@ namespace FcComms
             if(findFc(serial_port) == FcCommsReturns::kReturnError)
             {
                 fc_comms_status_= FcCommsStatus::kDisconnected;
+                ROS_ERROR("Connection to FC failed");
                 return FcCommsReturns::kReturnError;
             }
 
@@ -95,6 +96,7 @@ namespace FcComms
             {
                 ROS_WARN("Serial port not open.");
                 fc_comms_status_= FcCommsStatus::kDisconnected;
+                ROS_ERROR("Connection to FC failed");
                 return FcCommsReturns::kReturnError;
             }
 
@@ -137,7 +139,7 @@ namespace FcComms
         // FC not found
         if(found == false)
         {
-            ROS_WARN("FC_comms did not find target device.");
+            ROS_ERROR("FC_comms did not find target device.");
             return FcCommsReturns::kReturnError;
         }
 

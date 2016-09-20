@@ -124,7 +124,9 @@ FcCommsReturns CommonFcComms<T>::run(int argc, char **argv)
     ros::spin();
 
     // Disconnect from FC.
-    flightControlImpl_.disconnect();
+    //TODO handle if something went wrong disconnecting.
+    #pragma GCC warning "TODO handle failure"
+    (void)flightControlImpl_.disconnect();
 
     return FcCommsReturns::kReturnOk;
 }
@@ -134,9 +136,11 @@ template<class T>
 void CommonFcComms<T>::publishTopics()
 {
     iarc7_msgs::FlightControllerStatus fc;
+    #pragma GCC warning "TODO handle failure"
     flightControlImpl_.getStatus(fc.armed, fc.auto_pilot, fc.failsafe);
     
     std_msgs::Float32 battery;
+    #pragma GCC warning "TODO handle failure"
     flightControlImpl_.getBattery(battery.data);
 
     status_publisher.publish(fc);
@@ -152,12 +156,13 @@ void CommonFcComms<T>::updateSensors(const ros::TimerEvent&)
     {
         case FcCommsStatus::kDisconnected:
             ROS_WARN("FC_Comms disconnected");
-            flightControlImpl_.connect();
-            ROS_INFO("Back from connect");
+            // We don't care about the return value we just reconnect.
+            (void)flightControlImpl_.connect();
             break;
         
         case FcCommsStatus::kConnected:
             ROS_INFO("FC_comms updating FC sensors");
+            #pragma GCC warning "TODO handle failure"
             flightControlImpl_.handleComms();
             publishTopics();
             break;
@@ -166,7 +171,8 @@ void CommonFcComms<T>::updateSensors(const ros::TimerEvent&)
             break;
 
         default:
-            ROS_ERROR("FC_Comms has undefined state.");
+            ROS_FATAL("FC_Comms has undefined state.");
+            ROS_ASSERT(true);
     }
 }
 
