@@ -10,10 +10,10 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 #include <ros/ros.h>
-#include "std_msgs/Float32.h"
+#include "CommonConf.hpp"
 #include "iarc7_msgs/FlightControllerStatus.h"
 #include "iarc7_msgs/UavControl.h"
-#include "CommonConf.hpp"
+#include "std_msgs/Float32.h"
 
 namespace FcComms{
 

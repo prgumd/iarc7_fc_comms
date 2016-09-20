@@ -7,10 +7,13 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
-namespace CommonConf
+namespace FcComms
 {
-    // In seconds.
-    const float kFcSensorsUpdatePeriod = 0.2;
+    struct CommonConf
+    {
+        // In seconds.
+        static constexpr const float kFcSensorsUpdatePeriod{0.2};
+    };
 }
 
 #endif // End COMMON_CONF_HPP
