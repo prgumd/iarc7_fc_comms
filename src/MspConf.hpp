@@ -15,7 +15,7 @@ namespace FcComms
         static const uint32_t kBaudRate{9600};
 
         // Needs space on end to bug in serial package
-        static constexpr const char* kHardwareId = "USB VID:PID=1a86:7523 ";
+        static constexpr char const * const kHardwareId{"USB VID:PID=1a86:7523 "};
 
         // In seconds.
         static constexpr const float kFcSensorsUpdatePeriod{0.2};
@@ -28,6 +28,16 @@ namespace FcComms
 
         // Longest MSP data section
         static const uint8_t kMspMaxDataLength = 127;
+
+        // Length of packet header
+        static const uint8_t kMspHeaderSize = 3;
+
+        // Header for receiving a message
+        static constexpr char const * const kMspReceiveHeader{"$M>"};
+
+        // Header for sending a message
+        static constexpr char const * const kMspSendHeader{"$M<"};
+
     };
 
 }
