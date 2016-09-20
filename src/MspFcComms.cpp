@@ -9,7 +9,7 @@
 #include <ros/ros.h>
 #include <string>
 #include "MspFcComms.hpp"
-#include "CommonFcComms.hpp"
+#include "CommonConf.hpp"
 #include "iarc7_msgs/FlightControllerRx.h"
 #include "MspConf.hpp"
 #include "serial/serial.h"

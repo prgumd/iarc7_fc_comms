@@ -17,21 +17,6 @@
 
 namespace FcComms{
 
-    // Used for the result of a command
-    enum class FcCommsReturns
-    {
-        kReturnOk,
-        kReturnError
-    };
-
-    // Used for the current state of communication with flight controller
-    enum class FcCommsStatus
-    {
-        kDisconnected,
-        kConnected,
-        kConnecting
-    };
-
     template<class T>
     class CommonFcComms
     {
