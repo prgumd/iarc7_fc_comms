@@ -5,14 +5,14 @@
 //
 // Msp flight controller node.
 //
-// Implements node behaviours specific to MSP FC's
+// Implements node behaviours specific to MSP FC
 //
 ////////////////////////////////////////////////////////////////////////////
 #include <ros/ros.h>
 #include <string>
-#include "CommonFcComms.hpp"
+#include "CommonConf.hpp"
+#include "iarc7_msgs/UavControl.h"
 #include "serial/serial.h"
-#include "iarc7_msgs/FlightControllerRx.h"
 
 namespace FcComms
 {
