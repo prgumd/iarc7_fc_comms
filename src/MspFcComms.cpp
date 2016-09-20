@@ -10,7 +10,7 @@
 #include <string>
 #include "MspFcComms.hpp"
 #include "CommonConf.hpp"
-#include "iarc7_msgs/FlightControllerRx.h"
+#include "iarc7_msgs/UavControl.h"
 #include "MspConf.hpp"
 #include "serial/serial.h"
 
@@ -54,8 +54,7 @@ namespace FcComms
                 break;
 
             default:
-                ROS_FATAL("FC_Comms has undefined state.");
-                ROS_ASSERT(true);
+                ROS_ASSERT_MSG(false, "FC_Comms has undefined state.");
 
                 // Needed as a placeholder, we aren't coming back though.
                 return FcCommsReturns::kReturnError;

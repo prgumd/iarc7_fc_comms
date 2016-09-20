@@ -156,8 +156,7 @@ void CommonFcComms<T>::updateSensors(const ros::TimerEvent&)
             break;
 
         default:
-            ROS_FATAL("FC_Comms has undefined state.");
-            ROS_ASSERT(true);
+            ROS_ASSERT_MSG(false, "FC_Comms has undefined state.");
     }
 }
 
