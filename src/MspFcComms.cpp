@@ -15,8 +15,6 @@
 #include "MspCommands.hpp"
 #include "serial/serial.h"
 
-using namespace FcComms;
-
 namespace FcComms
 {
 
@@ -232,8 +230,9 @@ namespace FcComms
             // Now receive
             if(message.has_response)
             {
-                std::string header = fc_serial_->read(FcCommsMspConf::kMspHeaderSize);
-                if(header == FcCommsMspConf::kMspReceiveHeader)
+                std::string header = fc_serial_->read(FcCommsMspConf::kMspHeaderSize);\
+                // Header is of type std::string so we can use this type of comparison
+                if(header != FcCommsMspConf::kMspReceiveHeader)
                 {
                     ROS_ERROR("Invalid message header from FC.");
                     return FcCommsReturns::kReturnError;
