@@ -12,6 +12,7 @@
 #include "CommonConf.hpp"
 #include "iarc7_msgs/UavControl.h"
 #include "MspConf.hpp"
+#include "MspCommands.hpp"
 #include "serial/serial.h"
 
 namespace FcComms
@@ -169,21 +170,126 @@ namespace FcComms
             return FcCommsReturns::kReturnError;
         }
 
+        // Try sending an ident request
+        MSP_IDENT ident;
+        sendMessage<MSP_IDENT>(ident);
+        char * const results = reinterpret_cast<char* const>(ident.response);
+        results[8] = '\0';
+        ROS_INFO("%s", ident.response);
         return FcCommsReturns::kReturnOk;
     }
 
+    // Implementation to send a receive a response from the flight controller
+    // Protocol specification here: http://www.stefanocottafavi.com/msp-the-multiwii-serial-protocol/
     template<typename T>
     FcCommsReturns MspFcComms::sendMessage(T& message)
     {
         if(fc_comms_status_ == FcCommsStatus::kConnected)
         {
-            // Send a message
-            // Check for errors
+            // Check length of data section
+            if(message.data_length > FcCommsMspConf::kMspMaxDataLength)
+            {
+                ROS_ERROR("FC_Comms data section > kMspMaxDataLength was attempted.");
+                return FcCommsReturns::kReturnError;
+            }
+
+            // Add the header, data_length, and message code
+            uint8_t packet[FcCommsMspConf::kMspNonDataLength + message.data_length];
+
+            std::copy(FcCommsMspConf::kMspSendHeader, FcCommsMspConf::kMspSendHeader + 3, packet);
+            packet[3] = message.data_length;
+            packet[4] = message.message_id;
+            
+            // Start off checksum calculation
+            uint8_t checksum{message.data_length ^ message.message_id};
+
+            #pragma GCC warning "Convert for loops in this function to some cleaner form of array copy"
+            // Copy data into message and finish calculating checksum
+            for(int i = 0; i < message.data_length; i++)
+            {
+                packet[FcCommsMspConf::kMspPacketDataOffset + i] = message.send[i];
+                checksum ^= message.send[i];
+            }
+
+            // Add checksum to packet
+            packet[FcCommsMspConf::kMspPacketDataOffset + message.data_length] = checksum;
+
+            try
+            {
+                fc_serial_->write(packet, FcCommsMspConf::kMspNonDataLength + message.data_length);
+            }
+            // Catch if there is an error writing
+            catch(const std::exception& e)
+            {
+                ROS_ERROR("FC_Comms error sending MSP packet");
+                ROS_ERROR("Exception: %s", e.what());
+                return FcCommsReturns::kReturnError;
+            }
+
+            #pragma GCC warning "It would be good to split this off to another function"
+            // Now receive
+            if(message.has_response)
+            {
+                std::string header = fc_serial_->read(FcCommsMspConf::kMspHeaderSize);\
+                // Header is of type std::string so we can use this type of comparison
+                if(header != FcCommsMspConf::kMspReceiveHeader)
+                {
+                    ROS_ERROR("Invalid message header from FC.");
+                    return FcCommsReturns::kReturnError;
+                }
+
+                // Read length of data section
+                uint8_t data_length{0};
+                #pragma GCC warning "TODO check how many bytes were received. Bound data_length."
+                (void)fc_serial_->read(&data_length, 1);
+
+                // Read rest of message
+                // Resulting buffer length is data length + message id length + crc
+                uint8_t message_length_no_header = data_length + 1 + 1;
+                uint8_t buffer[message_length_no_header];
+                #pragma GCC warning "TODO check how many bytes were received."
+                uint8_t message_length_read = fc_serial_->read(&buffer[0], message_length_no_header);
+
+                #pragma GCC warning "TODO Check that the message_ids are the same"
+                // Log errors
+                // Check that the lengths read are correct
+                if(message_length_read != message_length_no_header)
+                {
+                    ROS_ERROR("FC_Comms not all bytes received, expected: %d, got: %d", message_length_no_header, message_length_read);
+                    return FcCommsReturns::kReturnError;
+                }
+
+                // Calculate checksum from received data
+                // Only checksum up to message_length_read_1 to avoid xoring the checksum
+                uint8_t checksum = data_length;
+                for(int i = 0; i < message_length_no_header - 1; i++)
+                {
+                    checksum ^= buffer[i];
+                }
+
+                // Compare checksums
+                if(checksum != buffer[message_length_no_header-1])
+                {
+                    ROS_ERROR("FC_Comms CRC receive error, expected: %x, got: %x", checksum, buffer[message_length_no_header - 1]);
+                    return FcCommsReturns::kReturnError;
+                }
+
+                // Copy output buffer
+                #pragma GCC warning "Replace with more C++ style copy"
+                for(int i = 0; i < data_length; i++)
+                {
+                    // Data Length + header = 2
+                    #pragma GCC warning "TODO remove hardcoded 2"
+                    message.response[i] = buffer[2+i];
+                }
+            }
         }
         else
         {
-            ROS_WARN("Attempted to send FC message without being connected: %s", message.kType);
+            ROS_WARN("Attempted to send FC message without being connected, message id: %d", message.message_id);
         }
-    }
 
+        ROS_INFO("FC_COMMS %s sent/received succesfully", message.string_name);
+        return FcCommsReturns::kReturnOk;
+    }
 }
