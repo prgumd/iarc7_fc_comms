@@ -38,6 +38,13 @@ namespace FcComms
         // Header for sending a message
         static constexpr char const * const kMspSendHeader{"$M<"};
 
+        // MSP RC scaling factors
+        static constexpr const float kMspMidPoint{1500.0};
+        static constexpr const float kMspPitchScale{10.0}; // Should be filled in with values based on (kMspMax-kMspMidpoint) / max_angle
+        static constexpr const float kMspRollScale{10.0};  // Should be filled in with values based on (kMspMax-kMspMidpoint) / max_angle
+        static constexpr const float kMspYawScale{10.0};   // Should be filled in with values based on (kMspMax-kMspMidpoint) / max_angle
+        static constexpr const float kMspThrottleScale{(2000.0-1000.0) / 100.0};  // (Max-Min)/100 e.g. scale 0% to 100% to min/max throttle
+
     };
 
 }

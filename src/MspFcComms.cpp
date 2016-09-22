@@ -28,9 +28,63 @@ namespace FcComms
         delete fc_serial_;
     }
 
+    // Scale the throttle to an rc value and put them in the rc values array.
+    // Send the rc values
+    void MspFcComms::sendFcThrottle(float throttle)
+    {
+        // Send out the rx values using sendMessage.
+        throttle = throttle * FcCommsMspConf::kMspThrottleScale;
+        translated_rc_values_[3] = static_cast<uint16_t>(throttle);
+
+        // We have no way of knowing that the send failed don't check response
+        (void)sendRc();
+    }
+
+    // Scale the angles to rc values and put them in the rc values array.
+    // Send the rc values
     void MspFcComms::sendFcAngles(float pitch, float yaw, float roll)
     {
         // Send out the rx values using sendMessage.
+        pitch = (pitch * FcCommsMspConf::kMspPitchScale) + FcCommsMspConf::kMspMidPoint;
+        yaw   = (yaw * FcCommsMspConf::kMspRollScale) + FcCommsMspConf::kMspMidPoint;
+        roll  = (roll * FcCommsMspConf::kMspYawScale) + FcCommsMspConf::kMspMidPoint;
+
+        translated_rc_values_[0] = static_cast<uint16_t>(pitch);
+        translated_rc_values_[1] = static_cast<uint16_t>(yaw);
+        translated_rc_values_[2] = static_cast<uint16_t>(roll);
+
+        #pragma GCC warning "Handle return"
+        (void)sendRc();
+    }
+
+    // Send the rc commands to the FC using the member array of rc values.
+    FcCommsReturns MspFcComms::sendRc()
+    {
+        MSP_RC msp_rc;
+        msp_rc.packRc(translated_rc_values_);
+        #pragma GCC warning "Handle return"
+        sendMessage<MSP_RC>(msp_rc);
+    }
+
+    FcCommsReturns MspFcComms::getBattery(float& voltage)
+    {
+        MSP_ANALOG analog;
+        #pragma GCC warning "Handle return"
+        sendMessage<MSP_ANALOG>(analog);
+        voltage = analog.getVolts();
+
+        return FcCommsReturns::kReturnOk;
+    }
+
+    FcCommsReturns MspFcComms::getStatus(uint8_t& armed, uint8_t& auto_pilot, uint8_t& failsafe)
+    {
+        // Adding the autopilot flag is probably going to require modifying the FC firmware
+        // And could be quite a bit of work.
+        #pragma GCC warning "Finish implementing auto_pilot and failsafe"
+        MSP_STATUS status;
+        sendMessage<MSP_STATUS>(status);
+        armed = static_cast<uint8_t>(status.getArmed());
+        return FcCommsReturns::kReturnOk;
     }
 
     // Disconnect from FC, should be called before destructor.
@@ -143,19 +197,6 @@ namespace FcComms
             return FcCommsReturns::kReturnError;
         }
 
-        return FcCommsReturns::kReturnOk;
-    }
-
-    FcCommsReturns MspFcComms::getStatus(uint8_t& armed, uint8_t& auto_pilot, uint8_t& failsafe)
-    {
-        // Stubbed should send a message to get the flight controller status and update it.
-        return FcCommsReturns::kReturnOk;
-    }
-
-    FcCommsReturns MspFcComms::getBattery(float& voltage)
-    {
-        // Stubbed should construct message and
-        // return sendMessage<BatteryUpdate>();
         return FcCommsReturns::kReturnOk;
     }
 

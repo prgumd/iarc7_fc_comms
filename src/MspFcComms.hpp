@@ -46,6 +46,7 @@ namespace FcComms
 
         // Send the flight controller RX values
         void sendFcAngles(float pitch, float yaw, float roll);
+        void sendFcThrottle(float throttle);
 
     private:
         // Don't allow the copy constructor or assignment.
@@ -58,15 +59,22 @@ namespace FcComms
         // Connect to the serial port and identify FC.
         FcCommsReturns connectFc();
 
+        // Send the rc commands to the FC using the member array of rc values.
+        FcCommsReturns sendRc();
+
         // Send message using the MSP protocol
         template<typename T>
         FcCommsReturns sendMessage(T& message);
+
 
         // Serial object used to communicate with FC
         serial::Serial* fc_serial_;
 
         // State of communication with flight controller
         FcCommsStatus fc_comms_status_ = FcCommsStatus::kDisconnected;
+
+        // FC implementation specific to hold intermediate rc values
+        uint16_t translated_rc_values_[8]{0};
     };
 } // End namspace
 
