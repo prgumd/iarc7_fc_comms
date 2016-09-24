@@ -62,10 +62,10 @@ namespace FcComms
     // Send the rc commands to the FC using the member array of rc values.
     FcCommsReturns MspFcComms::sendRc()
     {
-        MSP_RC msp_rc;
+        MSP_SET_RAW_RC msp_rc;
         msp_rc.packRc(translated_rc_values_);
         #pragma GCC warning "Handle return"
-        sendMessage<MSP_RC>(msp_rc);
+        sendMessage<MSP_SET_RAW_RC>(msp_rc);
     }
 
     FcCommsReturns MspFcComms::getBattery(float& voltage)
@@ -264,62 +264,57 @@ namespace FcComms
             }
 
             #pragma GCC warning "It would be good to split this off to another function"
+            
             // Now receive
-            if(message.has_response)
+            std::string header = fc_serial_->read(FcCommsMspConf::kMspHeaderSize);\
+            // Header is of type std::string so we can use this type of comparison
+            if(header != FcCommsMspConf::kMspReceiveHeader)
             {
-                std::string header = fc_serial_->read(FcCommsMspConf::kMspHeaderSize);\
-                // Header is of type std::string so we can use this type of comparison
-                if(header != FcCommsMspConf::kMspReceiveHeader)
-                {
-                    ROS_ERROR("Invalid message header from FC.");
-                    return FcCommsReturns::kReturnError;
-                }
-
-                // Read length of data section
-                uint8_t data_length{0};
-                #pragma GCC warning "TODO check how many bytes were received. Bound data_length."
-                (void)fc_serial_->read(&data_length, 1);
-
-                // Read rest of message
-                // Resulting buffer length is data length + message id length + crc
-                uint8_t message_length_no_header = data_length + 1 + 1;
-                uint8_t buffer[message_length_no_header];
-                #pragma GCC warning "TODO check how many bytes were received."
-                uint8_t message_length_read = fc_serial_->read(&buffer[0], message_length_no_header);
-
-                #pragma GCC warning "TODO Check that the message_ids are the same"
-                // Log errors
-                // Check that the lengths read are correct
-                if(message_length_read != message_length_no_header)
-                {
-                    ROS_ERROR("FC_Comms not all bytes received, expected: %d, got: %d", message_length_no_header, message_length_read);
-                    return FcCommsReturns::kReturnError;
-                }
-
-                // Calculate checksum from received data
-                // Only checksum up to message_length_read_1 to avoid xoring the checksum
-                uint8_t checksum = data_length;
-                for(int i = 0; i < message_length_no_header - 1; i++)
-                {
-                    checksum ^= buffer[i];
-                }
-
-                // Compare checksums
-                if(checksum != buffer[message_length_no_header-1])
-                {
-                    ROS_ERROR("FC_Comms CRC receive error, expected: %x, got: %x", checksum, buffer[message_length_no_header - 1]);
-                    return FcCommsReturns::kReturnError;
-                }
-
-                // Copy output buffer
-                #pragma GCC warning "Replace with more C++ style copy"
-                for(int i = 0; i < data_length; i++)
-                {
-                    // Data Length + header = 2
-                    #pragma GCC warning "TODO remove hardcoded 2"
-                    message.response[i] = buffer[1+i];
-                }
+                ROS_ERROR("Invalid message header from FC.");
+                return FcCommsReturns::kReturnError;
             }
+
+            // Read length of data section
+            uint8_t data_length{0};
+            #pragma GCC warning "TODO check how many bytes were received. Bound data_length."
+            (void)fc_serial_->read(&data_length, 1);
+
+            // Read rest of message
+            // Resulting buffer length is data length + message id length + crc
+            uint8_t message_length_no_header = data_length + 1 + 1;
+            uint8_t buffer[message_length_no_header];
+            #pragma GCC warning "TODO check how many bytes were received."
+            uint8_t message_length_read = fc_serial_->read(&buffer[0], message_length_no_header);
+
+            if(buffer[0] != packet[4])
+            {
+                ROS_ERROR("Received packet id does not match the one sent previously");
+            }
+            // Log errors
+            // Check that the lengths read are correct
+            if(message_length_read != message_length_no_header)
+            {
+                ROS_ERROR("FC_Comms not all bytes received, expected: %d, got: %d", message_length_no_header, message_length_read);
+                return FcCommsReturns::kReturnError;
+            }
+
+            // Calculate checksum from received data
+            // Only checksum up to message_length_read_1 to avoid xoring the checksum
+            uint8_t crc = data_length;
+            for(int i = 0; i < message_length_no_header - 1; i++)
+            {
+                crc ^= buffer[i];
+            }
+
+            // Compare checksums
+            if(crc != buffer[message_length_no_header-1])
+            {
+                ROS_ERROR("FC_Comms CRC receive error, expected: %x, got: %x", crc, buffer[message_length_no_header - 1]);
+                return FcCommsReturns::kReturnError;
+            }
+
+            // Copy output buffer response to message
+            std::copy(buffer+1, buffer+1+data_length, message.response);
         }
         else
         {

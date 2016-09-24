@@ -22,7 +22,6 @@ namespace FcComms
 
         static const uint8_t message_id{100};
         static const uint8_t data_length{0};
-        static const bool has_response{true};
 
         static constexpr char const * const string_name{"MSP_IDENT"};
 
@@ -42,10 +41,41 @@ namespace FcComms
         MSP_RC& operator=(const MSP_RC& rhs) = delete;
 
         static const uint8_t message_id{105};
-        static const uint8_t data_length{8*2}; // 8 channels 2 bytes each
-        static const bool has_response{false};
+        static const uint8_t data_length{0};
 
         static constexpr char const * const string_name{"MSP_RC"};
+
+        uint8_t send[FcCommsMspConf::kMspMaxDataLength]={};
+
+        uint8_t response[FcCommsMspConf::kMspMaxDataLength];
+
+        void getRc(uint16_t (&rc_values)[18])
+        {
+            // Jetson runs in little endian mode and the FC
+            // Receives data in big endian
+            // Jetson sends back 18 channels, two bytes each.
+            #pragma GCC warning "Get rid of this hardcoded number"
+            for(int i = 0; i < 36; i+=2)
+            {
+                rc_values[i] = response[i] | (response[i+1] << 8);
+            }
+        }
+    };
+
+    struct MSP_SET_RAW_RC
+    {
+        // Default constructor an destructor
+        MSP_SET_RAW_RC() = default;
+        ~MSP_SET_RAW_RC() = default;
+
+        // Don't allow the copy constructor or assignment.
+        MSP_SET_RAW_RC(const MSP_SET_RAW_RC& rhs) = delete;
+        MSP_SET_RAW_RC& operator=(const MSP_SET_RAW_RC& rhs) = delete;
+
+        static const uint8_t message_id{200};
+        static const uint8_t data_length{8*2}; // 8 channels 2 bytes each
+
+        static constexpr char const * const string_name{"MSP_SET_RAW_RC"};
 
         uint8_t send[FcCommsMspConf::kMspMaxDataLength]={};
 
@@ -55,23 +85,10 @@ namespace FcComms
         {
             // Jetson runs in little endian mode and the FC
             // Receives data in big endian
-            uint8_t* data_ptr = reinterpret_cast<uint8_t*>(rc_values[0]);
-            send[0] = data_ptr[1];
-            send[0] = data_ptr[0];
-            send[0] = data_ptr[3];
-            send[0] = data_ptr[2];
-            send[0] = data_ptr[5];
-            send[0] = data_ptr[4];
-            send[0] = data_ptr[7];
-            send[0] = data_ptr[6];
-            send[0] = data_ptr[9];
-            send[0] = data_ptr[8];
-            send[0] = data_ptr[11];
-            send[0] = data_ptr[10];
-            send[0] = data_ptr[13];
-            send[0] = data_ptr[12];
-            send[0] = data_ptr[15];
-            send[0] = data_ptr[14];
+            uint8_t* data_ptr = reinterpret_cast<uint8_t*>(&rc_values[0]);
+            // 8 channels sent, two bytes each
+            #pragma GCC warning "Get rid of hardcoded number"
+            std::copy(data_ptr, data_ptr+16, send);
         }
     };
 
@@ -87,7 +104,6 @@ namespace FcComms
 
         static const uint8_t message_id{110};
         static const uint8_t data_length{0};
-        static const bool has_response{true};
 
         static constexpr char const * const string_name{"MSP_ANALOG"};
 
@@ -113,7 +129,6 @@ namespace FcComms
 
         static const uint8_t message_id{101};
         static const uint8_t data_length{0};
-        static const bool has_response{true};
 
         static constexpr char const * const string_name{"MSP_STATUS"};
 
