@@ -12,8 +12,8 @@
 #include <ros/ros.h>
 #include "CommonConf.hpp"
 #include "iarc7_msgs/FlightControllerStatus.h"
-#include "iarc7_msgs/UavControl.h"
-#include "iarc7_msgs/UavThrottle.h"
+#include "iarc7_msgs/Float64Stamped.h"
+#include "iarc7_msgs/OrientationAnglesStamped.h"
 #include "std_msgs/Float32.h"
 
 namespace FcComms{
@@ -52,17 +52,17 @@ namespace FcComms{
         void updateSensors(const ros::TimerEvent&);
 
         // Send FC angles
-        void sendFcAngles(const iarc7_msgs::UavControl::ConstPtr& message);
+        void sendFcAngles(const iarc7_msgs::OrientationAnglesStamped::ConstPtr& message);
 
         // Send FC throttle
-        void sendFcThrottle(const iarc7_msgs::UavThrottle::ConstPtr& message);
+        void sendFcThrottle(const iarc7_msgs::Float64Stamped::ConstPtr& message);
         // Just use the default constructor
         T flightControlImpl_;
 
-        // Subscriber for UavAngle values
+        // Subscriber for uav_angle values
         ros::Subscriber uav_angle_subscriber;
 
-        // Subscriber for UavThrottle valuess
+        // Subscriber for uav_throttle valuess
         ros::Subscriber uav_throttle_subscriber;
 
     };
