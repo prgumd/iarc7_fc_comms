@@ -12,10 +12,10 @@ namespace FcComms
 
     struct FcCommsMspConf
     {
-        static const uint32_t kBaudRate{9600};
+        static const uint32_t kBaudRate{115200};
 
         // Needs space on end to bug in serial package
-        static constexpr char const * const kHardwareId{"USB VID:PID=1a86:7523 "};
+        static constexpr char const * const kHardwareId{"USB VID:PID=10c4:ea60 SNR=0001"};
 
         // In seconds.
         static constexpr const float kFcSensorsUpdatePeriod{0.2};

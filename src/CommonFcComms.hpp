@@ -143,7 +143,9 @@ void CommonFcComms<T>::publishTopics()
     #pragma GCC warning "TODO handle failure"
     flightControlImpl_.getBattery(battery.data);
 
+    ROS_INFO("Armed: %d", fc.armed);
     status_publisher.publish(fc);
+    ROS_INFO("Battery level: %f", battery.data);
     battery_publisher.publish(battery);
 }
 

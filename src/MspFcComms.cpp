@@ -211,12 +211,6 @@ namespace FcComms
             return FcCommsReturns::kReturnError;
         }
 
-        // Try sending an ident request
-        MSP_IDENT ident;
-        sendMessage<MSP_IDENT>(ident);
-        char * const results = reinterpret_cast<char* const>(ident.response);
-        results[8] = '\0';
-        ROS_INFO("%s", ident.response);
         return FcCommsReturns::kReturnOk;
     }
 
@@ -321,7 +315,7 @@ namespace FcComms
                 {
                     // Data Length + header = 2
                     #pragma GCC warning "TODO remove hardcoded 2"
-                    message.response[i] = buffer[2+i];
+                    message.response[i] = buffer[1+i];
                 }
             }
         }
@@ -330,7 +324,7 @@ namespace FcComms
             ROS_WARN("Attempted to send FC message without being connected, message id: %d", message.message_id);
         }
 
-        ROS_INFO("FC_COMMS %s sent/received succesfully", message.string_name);
+        ROS_DEBUG("FC_COMMS %s sent/received succesfully", message.string_name);
         return FcCommsReturns::kReturnOk;
     }
 }
