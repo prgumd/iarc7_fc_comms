@@ -129,14 +129,14 @@ include_directories(
 # add_dependencies(iarc7_fc_comms ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
-add_executable(msp src/Msp.cpp src/MspFcComms.cpp)
+add_executable(fc_comms_msp src/Msp.cpp src/MspFcComms.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-add_dependencies(msp ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(fc_comms_msp ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(msp
+target_link_libraries(fc_comms_msp
    ${catkin_LIBRARIES}
  )
 
