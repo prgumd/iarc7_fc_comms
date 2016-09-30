@@ -14,6 +14,8 @@ namespace FcComms
     {
         static const uint32_t kBaudRate{115200};
 
+        static const uint32_t kSerialTimeoutMs{75};
+
         // Needs space on end to bug in serial package
         static constexpr char const * const kHardwareId{"USB VID:PID=10c4:ea60 SNR=0001"};
 

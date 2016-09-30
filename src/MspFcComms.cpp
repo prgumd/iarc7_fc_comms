@@ -145,7 +145,8 @@ namespace FcComms
             }
 
             // Make a serial port object
-            fc_serial_ = new serial::Serial(serial_port, FcCommsMspConf::kBaudRate, serial::Timeout::simpleTimeout(1000));
+            fc_serial_ = new serial::Serial(serial_port, FcCommsMspConf::kBaudRate,
+                                            serial::Timeout::simpleTimeout(FcCommsMspConf::kSerialTimeoutMs));
 
             // Wait for the serial port to be open.
             if(fc_serial_->isOpen() == false)
@@ -268,11 +269,16 @@ namespace FcComms
             }
 
             #pragma GCC warning "It would be good to split this off to another function"
-            
+
             try
             {
                 // Now receive
-                std::string header = fc_serial_->read(FcCommsMspConf::kMspHeaderSize);\
+                std::string header;
+                if(fc_serial_->read(header, FcCommsMspConf::kMspHeaderSize) != FcCommsMspConf::kMspHeaderSize){
+                    ROS_ERROR("Possible disconnection, wrong number of bytes received");
+                    fc_comms_status_ = FcCommsStatus::kDisconnected;
+                }
+                
                 // Header is of type std::string so we can use this type of comparison
                 if(header != FcCommsMspConf::kMspReceiveHeader)
                 {
@@ -282,16 +288,16 @@ namespace FcComms
 
                 // Read length of data section
                 uint8_t data_length{0};
-                #pragma GCC warning "TODO check how many bytes were received. Bound data_length."
-                (void)fc_serial_->read(&data_length, 1);
-
+                if(fc_serial_->read(&data_length, 1) != 1){
+                    ROS_ERROR("Possible disconnection, wrong number of bytes received");
+                    fc_comms_status_ = FcCommsStatus::kDisconnected;
+                }
                 // Read rest of message
                 // Resulting buffer length is data length + message id length + crc
                 uint8_t message_length_no_header = data_length + 1 + 1;
                 uint8_t buffer[message_length_no_header];
                 #pragma GCC warning "TODO check how many bytes were received."
                 uint8_t message_length_read = fc_serial_->read(&buffer[0], message_length_no_header);
-
                 if(buffer[0] != packet[4])
                 {
                     ROS_ERROR("Received packet id does not match the one sent previously");
@@ -301,6 +307,7 @@ namespace FcComms
                 if(message_length_read != message_length_no_header)
                 {
                     ROS_ERROR("FC_Comms not all bytes received, expected: %d, got: %d", message_length_no_header, message_length_read);
+                    fc_comms_status_ = FcCommsStatus::kDisconnected;
                     return FcCommsReturns::kReturnError;
                 }
 
