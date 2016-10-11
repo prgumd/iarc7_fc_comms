@@ -65,14 +65,14 @@ namespace FcComms
         MSP_SET_RAW_RC msp_rc;
         msp_rc.packRc(translated_rc_values_);
         #pragma GCC warning "Handle return"
-        sendMessage<MSP_SET_RAW_RC>(msp_rc);
+        sendMessage(msp_rc);
     }
 
     FcCommsReturns MspFcComms::getBattery(float& voltage)
     {
         MSP_ANALOG analog;
         #pragma GCC warning "Handle return"
-        sendMessage<MSP_ANALOG>(analog);
+        sendMessage(analog);
         voltage = analog.getVolts();
 
         return FcCommsReturns::kReturnOk;
@@ -84,8 +84,13 @@ namespace FcComms
         // And could be quite a bit of work.
         #pragma GCC warning "Finish implementing auto_pilot and failsafe"
         MSP_STATUS status;
-        sendMessage<MSP_STATUS>(status);
+        sendMessage(status);
         armed = static_cast<uint8_t>(status.getArmed());
+
+        MSP_RC rc_channels;
+        sendMessage(rc_channels);
+        auto_pilot = static_cast<uint8_t>(rc_channels.getAutoEnabled());
+
         return FcCommsReturns::kReturnOk;
     }
 
