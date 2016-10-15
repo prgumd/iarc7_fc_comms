@@ -60,6 +60,15 @@ namespace FcComms
                 rc_values[i] = response[i] | (response[i+1] << 8);
             }
         }
+
+        bool getAutoEnabled()
+        {
+            // Jetson runs in little endian mode and the FC
+            // sends data in big endian
+            // Yay magic numbers
+            uint16_t aux5 = response[16] | (response[17] << 8);
+            return aux5 > 1500 ? true : false;
+        }
     };
 
     struct MSP_SET_RAW_RC
