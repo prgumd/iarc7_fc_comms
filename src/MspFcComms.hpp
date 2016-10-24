@@ -24,7 +24,7 @@ namespace FcComms
     public:
         MspFcComms();
         ~MspFcComms();
-
+    
         // Used to find and connect to the serial port
         FcCommsReturns connect();
 
@@ -53,6 +53,8 @@ namespace FcComms
         void sendFcAngles(const iarc7_msgs::OrientationAnglesStamped::ConstPtr& message);
         void sendFcThrottle(const iarc7_msgs::Float64Stamped::ConstPtr& message);
         void sendArmRequest(const iarc7_msgs::BoolStamped::ConstPtr& message);
+        void printRawRC();
+        bool isAutoPilotAllowed();
 
     private:
         // Don't allow the copy constructor or assignment.
@@ -64,6 +66,9 @@ namespace FcComms
 
         // Connect to the serial port and identify FC.
         FcCommsReturns connectFc();
+
+        FcCommsReturns getRawRC(uint16_t (&rc_values)[18]);
+
 
         // Send the rc commands to the FC using the member array of rc values.
         FcCommsReturns sendRc();
