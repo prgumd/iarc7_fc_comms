@@ -102,6 +102,14 @@ namespace FcComms
         return FcCommsReturns::kReturnOk;
     }
 
+    FcCommsReturns MspFcComms::getAttitude(double (&attitude)[3])
+    {
+        MSP_ATTITUDE att;
+        (void)sendMessage(att);
+        att.getAttitude(attitude);
+        return FcCommsReturns::kReturnOk;
+    }
+
     // Disconnect from FC, should be called before destructor.
     FcCommsReturns MspFcComms::disconnect()
     {

@@ -40,6 +40,9 @@ namespace FcComms
         // Get the battery voltage of the FC.
         FcCommsReturns getBattery(float& voltage);
 
+        // Get the attitude of the FC
+        FcCommsReturns getAttitude(double (&attitude)[3]);
+
         // Getter for current connection status
         inline const FcCommsStatus getConnectionStatus()
         {

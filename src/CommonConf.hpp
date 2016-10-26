@@ -29,6 +29,10 @@ namespace FcComms
     {
         // In seconds.
         static constexpr const float kFcSensorsUpdatePeriod{0.2};
+
+        static constexpr const char* kTfParentName{"level_quad"};
+        static constexpr const char* kTfChildName{"quad"};
+
     };
 }
 
