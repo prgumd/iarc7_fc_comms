@@ -59,6 +59,12 @@ namespace FcComms
         (void)sendRc();
     }
 
+    void MspFcComms::sendArmRequest(const iarc7_msgs::BoolStamped::ConstPtr& message)
+    {
+        // Try to arm, Values over 1800 arm the FC
+        translated_rc_values_[4] = (message->arm_request == true) ? 2000 : 1000;
+    }
+
     // Send the rc commands to the FC using the member array of rc values.
     FcCommsReturns MspFcComms::sendRc()
     {
@@ -66,6 +72,9 @@ namespace FcComms
         msp_rc.packRc(translated_rc_values_);
         #pragma GCC warning "Handle return"
         sendMessage(msp_rc);
+
+        #pragma GCC warning "Handle return"
+        (void)sendRc();
     }
 
     FcCommsReturns MspFcComms::getBattery(float& voltage)
