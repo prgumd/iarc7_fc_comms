@@ -65,6 +65,9 @@ namespace FcComms{
         // Subscriber for uav_throttle valuess
         ros::Subscriber uav_throttle_subscriber;
 
+        // Subscriber for uav_arm
+        ros::Subscriber uav_arm_subscriber;
+
     };
 }
 
@@ -91,6 +94,7 @@ FcCommsReturns CommonFcComms<T>::init()
     status_publisher = nh_.advertise<iarc7_msgs::FlightControllerStatus>("fc_status", 50);
     uav_angle_subscriber = nh_.subscribe("uav_angles", 100, &T::sendFcAngles, &flightControlImpl_);
     uav_throttle_subscriber = nh_.subscribe("uav_throttle", 100, &T::sendFcThrottle, &flightControlImpl_);
+    uav_arm_subscriber = nh_.subscribe("uav_arm", 100, &T::sendArmRequest, &flightControlImpl_);
 
     ROS_INFO("FC Comms registered and subscribed to topics");
 
