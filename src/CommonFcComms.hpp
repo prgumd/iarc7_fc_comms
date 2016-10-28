@@ -193,8 +193,7 @@ void CommonFcComms<T>::sendOrientationTransform(double (&attitude)[3])
 
   tf2::Quaternion q;
 
-  // This assumes that the attitudes received are order roll, pitch, yaw.
-  // The first two might need to be switched
+  // This assumes the values are returned in the form roll pitch yaw
   q.setRPY(attitude[0], attitude[1], attitude[2]);
   transformStamped.transform.rotation.x = q.x();
   transformStamped.transform.rotation.y = q.y();

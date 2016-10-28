@@ -177,16 +177,28 @@ namespace FcComms
 
         uint8_t response[FcCommsMspConf::kMspMaxDataLength];
 
+        // Returns the attitude in terms of roll pitch and yaw
         void getAttitude(double (&attitude_values)[3])
         {
             // Jetson runs in little endian mode and the FC
             // Receives data in big endian
             // Jetson sends back 18 channels, two bytes each.
             #pragma GCC warning "Get rid of this hardcoded number"
-            for(int i = 0; i < 3; i+=2)
+            for(uint32_t i = 0; i < 3; i++)
             {
-                attitude_values[i] = static_cast<double>((response[i] | (response[i+1] << 8))/10.0);
+                // Unpack the value
+                uint16_t unpacked_value = response[i*2] | (response[(i*2)+1] << 8);
+
+                // Reinterpret as signed
+                int16_t* temp = reinterpret_cast<int16_t*>(&unpacked_value);
+
+                // Convert to degrees
+                attitude_values[i] = static_cast<double>(*temp);
             }
+
+            // Roll and pitch are 10x what their angles actually are
+            attitude_values[0] = attitude_values[0] / 10.0;
+            attitude_values[1] = attitude_values[1] / 10.0;
         }
     };
 }
