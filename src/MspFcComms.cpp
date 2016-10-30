@@ -102,6 +102,15 @@ namespace FcComms
         return FcCommsReturns::kReturnOk;
     }
 
+    // Get the attitude of the FC in the order roll pitch yaw
+    FcCommsReturns MspFcComms::getAttitude(double (&attitude)[3])
+    {
+        MSP_ATTITUDE att;
+        (void)sendMessage(att);
+        att.getAttitude(attitude);
+        return FcCommsReturns::kReturnOk;
+    }
+
     // Disconnect from FC, should be called before destructor.
     FcCommsReturns MspFcComms::disconnect()
     {

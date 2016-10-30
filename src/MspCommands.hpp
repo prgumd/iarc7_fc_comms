@@ -157,6 +157,50 @@ namespace FcComms
             return flags & 0x1;
         }
     };
+
+    struct MSP_ATTITUDE
+    {
+        // Default constructor an destructor
+        MSP_ATTITUDE() = default;
+        ~MSP_ATTITUDE() = default;
+
+        // Don't allow the copy constructor or assignment.
+        MSP_ATTITUDE(const MSP_ATTITUDE& rhs) = delete;
+        MSP_ATTITUDE& operator=(const MSP_ATTITUDE& rhs) = delete;
+
+        static const uint8_t message_id{108};
+        static const uint8_t data_length{0};
+
+        static constexpr char const * const string_name{"MSP_ATTITUDE"};
+
+        uint8_t send[FcCommsMspConf::kMspMaxDataLength]={};
+
+        uint8_t response[FcCommsMspConf::kMspMaxDataLength];
+
+        // Returns the attitude in terms of roll pitch and yaw
+        void getAttitude(double (&attitude_values)[3])
+        {
+            // Jetson runs in little endian mode and the FC
+            // Receives data in big endian
+            // Jetson sends back 18 channels, two bytes each.
+            #pragma GCC warning "Get rid of this hardcoded number"
+            for(uint32_t i = 0; i < 3; i++)
+            {
+                // Unpack the value
+                uint16_t unpacked_value = response[i*2] | (response[(i*2)+1] << 8);
+
+                // Reinterpret as signed
+                int16_t* temp = reinterpret_cast<int16_t*>(&unpacked_value);
+
+                // Convert to degrees
+                attitude_values[i] = static_cast<double>(*temp);
+            }
+
+            // Roll and pitch are 10x what their angles actually are
+            attitude_values[0] = attitude_values[0] / 10.0;
+            attitude_values[1] = attitude_values[1] / 10.0;
+        }
+    };
 }
 
 #endif

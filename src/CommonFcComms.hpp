@@ -10,6 +10,9 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 #include <ros/ros.h>
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2_ros/transform_broadcaster.h>
+#include <geometry_msgs/TransformStamped.h>
 #include "CommonConf.hpp"
 #include "iarc7_msgs/FlightControllerStatus.h"
 #include "iarc7_msgs/Float64Stamped.h"
@@ -56,6 +59,10 @@ namespace FcComms{
 
         // Send FC throttle
         void sendFcThrottle(const iarc7_msgs::Float64Stamped::ConstPtr& message);
+
+        // Send out the transform for the level_quad to quad
+        void sendOrientationTransform(double (&attitude)[3]);
+
         // Just use the default constructor
         T flightControlImpl_;
 
@@ -137,6 +144,12 @@ void CommonFcComms<T>::publishTopics()
     status_publisher.publish(fc);
     ROS_INFO("Battery level: %f", battery.data);
     battery_publisher.publish(battery);
+
+
+    double attitude[3];
+    flightControlImpl_.getAttitude(attitude);
+    ROS_INFO("Attitude: %f %f %f", attitude[0], attitude[1], attitude[2]);
+    sendOrientationTransform(attitude);
 }
 
 // Update the sensors on the flight controller
@@ -165,6 +178,29 @@ void CommonFcComms<T>::updateSensors(const ros::TimerEvent&)
         default:
             ROS_ASSERT_MSG(false, "FC_Comms has undefined state.");
     }
+}
+
+// Send out the transform for the level_quad to quad
+template<class T>
+void CommonFcComms<T>::sendOrientationTransform(double (&attitude)[3])
+{
+  static tf2_ros::TransformBroadcaster br;
+  geometry_msgs::TransformStamped transformStamped;
+  
+  transformStamped.header.stamp = ros::Time::now();
+  transformStamped.header.frame_id = CommonConf::kTfParentName;
+  transformStamped.child_frame_id = CommonConf::kTfChildName;
+
+  tf2::Quaternion q;
+
+  // This assumes the values are returned in the form roll pitch yaw
+  q.setRPY(attitude[0], attitude[1], attitude[2]);
+  transformStamped.transform.rotation.x = q.x();
+  transformStamped.transform.rotation.y = q.y();
+  transformStamped.transform.rotation.z = q.z();
+  transformStamped.transform.rotation.w = q.w();
+
+  br.sendTransform(transformStamped);
 }
 
 #endif
