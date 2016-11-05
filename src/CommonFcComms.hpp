@@ -19,6 +19,8 @@
 #include "iarc7_msgs/OrientationAnglesStamped.h"
 #include "std_msgs/Float32.h"
 
+
+//mspfccomms actually handles the serial communication
 namespace FcComms{
 
     template<class T>
@@ -41,7 +43,7 @@ namespace FcComms{
         // Class can only be made by class
         CommonFcComms() = default;
 
-        // This nodes handle.
+        // This node's handle.
         ros::NodeHandle nh_; 
 
         // Publishers for FC sensors

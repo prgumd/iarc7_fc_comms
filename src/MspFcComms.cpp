@@ -51,7 +51,8 @@ namespace FcComms
         float roll  = (message->data.roll * FcCommsMspConf::kMspYawScale) + FcCommsMspConf::kMspMidPoint;
 
         #pragma GCC warning "Bounds check the floats so we can't send something to big or small"
-        translated_rc_values_[0] = static_cast<uint16_t>(pitch);
+        translated_rc_values_[0] = static_cast<uint16_t>(pitch); 
+        //translated_rc_values is initialized in the corresponding .hpp file
         translated_rc_values_[1] = static_cast<uint16_t>(yaw);
         translated_rc_values_[2] = static_cast<uint16_t>(roll);
 
@@ -68,6 +69,48 @@ namespace FcComms
     }
 
     // Send the rc commands to the FC using the member array of rc values.
+    FcCommsReturns MspFcComms::getRawRC(uint16_t (&rc_values)[18]) 
+    {
+        char RC_info[200];
+        MSP_RC msp_getrawRC;
+        sendMessage(msp_getrawRC);
+        
+        msp_getrawRC.getRc(rc_values); 
+
+
+        uint32_t j{0};
+        j+=sprintf(RC_info, "Raw Rc: %d", rc_values[0]);
+
+        //Look at getstatus for a todo regarding ROS::debug
+    }
+
+    void MspFcComms::printRawRC()
+    {
+        uint16_t raw_values[18];
+        getRawRC(raw_values);
+        char RC_info[100];
+        int j = 0;
+        for (int i = 0 ; i < 18 ; i++) {
+            j+=sprintf(&RC_info[j], ", %d", raw_values[i]);
+        } //This is Levi's for loop
+        ROS_INFO(RC_info);
+    }
+
+    bool MspFcComms::isAutoPilotAllowed()
+    {
+        uint16_t autoRCvalues[18];
+        getRawRC(autoRCvalues);
+        ROS_INFO("HELLO: %d", autoRCvalues[9]);
+        if(autoRCvalues[8] > 1800)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
     FcCommsReturns MspFcComms::sendRc()
     {
         MSP_SET_RAW_RC msp_rc;
@@ -97,7 +140,7 @@ namespace FcComms
 
         MSP_RC rc_channels;
         sendMessage(rc_channels);
-        auto_pilot = static_cast<uint8_t>(rc_channels.getAutoEnabled());
+        auto_pilot = isAutoPilotAllowed(); 
 
         return FcCommsReturns::kReturnOk;
     }
@@ -229,7 +272,10 @@ namespace FcComms
     }
 
     FcCommsReturns MspFcComms::handleComms()
-    {
+    {   
+        //print the raw RC
+        printRawRC();
+
         // Check Connection
         // Check that the serial port is still open.
         if(fc_serial_->isOpen() == false)
@@ -369,3 +415,4 @@ namespace FcComms
         return FcCommsReturns::kReturnOk;
     }
 }
+  
