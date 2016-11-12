@@ -16,7 +16,7 @@
 #include "CommonConf.hpp"
 #include "iarc7_msgs/FlightControllerStatus.h"
 #include "iarc7_msgs/Float64Stamped.h"
-#include "iarc7_msgs/OrientationAnglesStamped.h"
+#include "iarc7_msgs/OrientationThrottleStamped.h"
 #include "std_msgs/Float32.h"
 
 
@@ -57,10 +57,7 @@ namespace FcComms{
         void updateSensors(const ros::TimerEvent&);
 
         // Send FC angles
-        void sendFcAngles(const iarc7_msgs::OrientationAnglesStamped::ConstPtr& message);
-
-        // Send FC throttle
-        void sendFcThrottle(const iarc7_msgs::Float64Stamped::ConstPtr& message);
+        void sendFcDirection(const iarc7_msgs::OrientationThrottleStamped::ConstPtr& message);
 
         // Send out the transform for the level_quad to quad
         void sendOrientationTransform(double (&attitude)[3]);
@@ -101,8 +98,7 @@ FcCommsReturns CommonFcComms<T>::init()
 
     battery_publisher = nh_.advertise<std_msgs::Float32>("fc_battery", 50);
     status_publisher = nh_.advertise<iarc7_msgs::FlightControllerStatus>("fc_status", 50);
-    uav_angle_subscriber = nh_.subscribe("uav_angles", 100, &T::sendFcAngles, &flightControlImpl_);
-    uav_throttle_subscriber = nh_.subscribe("uav_throttle", 100, &T::sendFcThrottle, &flightControlImpl_);
+    uav_angle_subscriber = nh_.subscribe("uav_direction_command", 100, &T::sendFcDirection, &flightControlImpl_);
     uav_arm_subscriber = nh_.subscribe("uav_arm", 100, &T::sendArmRequest, &flightControlImpl_);
 
     ROS_INFO("FC Comms registered and subscribed to topics");

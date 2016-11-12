@@ -11,7 +11,7 @@
 #include "MspFcComms.hpp"
 #include "CommonConf.hpp"
 #include "iarc7_msgs/Float64Stamped.h"
-#include "iarc7_msgs/OrientationAnglesStamped.h"
+#include "iarc7_msgs/OrientationThrottleStamped.h"
 #include "MspConf.hpp"
 #include "MspCommands.hpp"
 #include "serial/serial.h"
@@ -29,32 +29,22 @@ namespace FcComms
         delete fc_serial_;
     }
 
-    // Scale the throttle to an rc value and put them in the rc values array.
+    // Scale the direction commands to rc values and put them in the rc values array.
     // Send the rc values
-    void MspFcComms::sendFcThrottle(const iarc7_msgs::Float64Stamped::ConstPtr& message)
-    {
-        // Send out the rx values using sendMessage.
-        float throttle = message->data * FcCommsMspConf::kMspThrottleScale;
-        translated_rc_values_[3] = static_cast<uint16_t>(throttle);
-
-        // We have no way of knowing that the send failed don't check response
-        (void)sendRc();
-    }
-
-    // Scale the angles to rc values and put them in the rc values array.
-    // Send the rc values
-    void MspFcComms::sendFcAngles(const iarc7_msgs::OrientationAnglesStamped::ConstPtr& message)
+    void MspFcComms::sendFcDirection(const iarc7_msgs::OrientationThrottleStamped::ConstPtr& message)
     {
         // Send out the rx values using sendMessage.
         float pitch = (message->data.pitch * FcCommsMspConf::kMspPitchScale) + FcCommsMspConf::kMspMidPoint;
         float yaw   = (message->data.yaw * FcCommsMspConf::kMspRollScale) + FcCommsMspConf::kMspMidPoint;
         float roll  = (message->data.roll * FcCommsMspConf::kMspYawScale) + FcCommsMspConf::kMspMidPoint;
+        float throttle = message->throttle * FcCommsMspConf::kMspThrottleScale;
 
         #pragma GCC warning "Bounds check the floats so we can't send something to big or small"
         translated_rc_values_[0] = static_cast<uint16_t>(pitch); 
         //translated_rc_values is initialized in the corresponding .hpp file
         translated_rc_values_[1] = static_cast<uint16_t>(yaw);
         translated_rc_values_[2] = static_cast<uint16_t>(roll);
+        translated_rc_values_[3] = static_cast<uint16_t>(throttle);
 
         #pragma GCC warning "Handle return"
         (void)sendRc();
@@ -100,7 +90,6 @@ namespace FcComms
     {
         uint16_t autoRCvalues[18];
         getRawRC(autoRCvalues);
-        ROS_INFO("HELLO: %d", autoRCvalues[9]);
         if(autoRCvalues[8] > 1800)
         {
             return true;
