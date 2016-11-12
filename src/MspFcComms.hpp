@@ -13,7 +13,7 @@
 #include "CommonConf.hpp"
 #include "iarc7_msgs/BoolStamped.h"
 #include "iarc7_msgs/Float64Stamped.h"
-#include "iarc7_msgs/OrientationAnglesStamped.h"
+#include "iarc7_msgs/OrientationThrottleStamped.h"
 #include "serial/serial.h"
 
 namespace FcComms
@@ -50,8 +50,7 @@ namespace FcComms
         }
 
         // Send the flight controller RX values
-        void sendFcAngles(const iarc7_msgs::OrientationAnglesStamped::ConstPtr& message);
-        void sendFcThrottle(const iarc7_msgs::Float64Stamped::ConstPtr& message);
+        void sendFcDirection(const iarc7_msgs::OrientationThrottleStamped::ConstPtr& message);
         void sendArmRequest(const iarc7_msgs::BoolStamped::ConstPtr& message);
         void printRawRC();
         bool isAutoPilotAllowed();
