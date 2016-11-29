@@ -118,14 +118,14 @@ namespace FcComms
         return FcCommsReturns::kReturnOk;
     }
 
-    FcCommsReturns MspFcComms::getStatus(uint8_t& armed, uint8_t& auto_pilot, uint8_t& failsafe)
+    FcCommsReturns MspFcComms::getStatus(bool& armed, bool& auto_pilot, bool& failsafe)
     {
         // Adding the autopilot flag is probably going to require modifying the FC firmware
         // And could be quite a bit of work.
         #pragma GCC warning "Finish implementing auto_pilot and failsafe"
         MSP_STATUS status;
         sendMessage(status);
-        armed = static_cast<uint8_t>(status.getArmed());
+        armed = status.getArmed();
 
         MSP_RC rc_channels;
         sendMessage(rc_channels);
