@@ -131,7 +131,14 @@ void CommonFcComms<T>::publishTopics()
 {
     iarc7_msgs::FlightControllerStatus fc;
     #pragma GCC warning "TODO handle failure"
-    flightControlImpl_.getStatus(fc.armed, fc.auto_pilot, fc.failsafe);
+    bool temp_armed;
+    bool temp_auto_pilot;
+    bool temp_failsafe;
+    flightControlImpl_.getStatus(temp_armed, temp_auto_pilot, temp_failsafe);
+
+    fc.armed = temp_armed;
+    fc.auto_pilot = temp_auto_pilot;
+    fc.failsafe = temp_failsafe;
     
     std_msgs::Float32 battery;
     #pragma GCC warning "TODO handle failure"
