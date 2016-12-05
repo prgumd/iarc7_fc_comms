@@ -35,7 +35,7 @@ namespace FcComms
         FcCommsReturns handleComms();
 
         // Get the flight status of the FC.
-        FcCommsReturns getStatus(uint8_t& armed, uint8_t& auto_pilot, uint8_t& failsafe);
+        FcCommsReturns getStatus(bool& armed, bool& auto_pilot, bool& failsafe);
 
         // Get the battery voltage of the FC.
         FcCommsReturns getBattery(float& voltage);
