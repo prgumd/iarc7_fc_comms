@@ -8,13 +8,15 @@
 ////////////////////////////////////////////////////////////////////////////
 #include <ros/ros.h>
 #include <string>
-#include "MspFcComms.hpp"
-#include "CommonConf.hpp"
+#include "iarc7_fc_comms/MspFcComms.hpp"
+#include "iarc7_fc_comms/CommonConf.hpp"
+#include "iarc7_fc_comms/MspConf.hpp"
+#include "iarc7_fc_comms/MspCommands.hpp"
+
+#include "serial/serial.h"
+
 #include "iarc7_msgs/Float64Stamped.h"
 #include "iarc7_msgs/OrientationThrottleStamped.h"
-#include "MspConf.hpp"
-#include "MspCommands.hpp"
-#include "serial/serial.h"
 
 namespace FcComms
 {

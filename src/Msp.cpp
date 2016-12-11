@@ -7,8 +7,8 @@
 ////////////////////////////////////////////////////////////////////////////
 
 #include <ros/ros.h>
-#include "CommonFcComms.hpp"
-#include "MspFcComms.hpp"
+#include "iarc7_fc_comms/CommonFcComms.hpp"
+#include "iarc7_fc_comms/MspFcComms.hpp"
 
 int main(int argc, char **argv)
 {
