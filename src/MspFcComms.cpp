@@ -8,13 +8,15 @@
 ////////////////////////////////////////////////////////////////////////////
 #include <ros/ros.h>
 #include <string>
-#include "MspFcComms.hpp"
-#include "CommonConf.hpp"
+#include "iarc7_fc_comms/MspFcComms.hpp"
+#include "iarc7_fc_comms/CommonConf.hpp"
+#include "iarc7_fc_comms/MspConf.hpp"
+#include "iarc7_fc_comms/MspCommands.hpp"
+
+#include "serial/serial.h"
+
 #include "iarc7_msgs/Float64Stamped.h"
 #include "iarc7_msgs/OrientationThrottleStamped.h"
-#include "MspConf.hpp"
-#include "MspCommands.hpp"
-#include "serial/serial.h"
 
 namespace FcComms
 {
@@ -78,11 +80,11 @@ namespace FcComms
     {
         uint16_t raw_values[18];
         getRawRC(raw_values);
-        char RC_info[100];
+        char RC_info[150];
         int j = 0;
         for (int i = 0 ; i < 18 ; i++) {
-            j+=sprintf(&RC_info[j], ", %d", raw_values[i]);
-        } //This is Levi's for loop
+            j+=snprintf(&RC_info[j], (j >= 150 ? 0 : 150 - j), ", %d", raw_values[i]);
+        }
         ROS_INFO(RC_info);
     }
 

@@ -67,7 +67,7 @@ find_package(catkin REQUIRED COMPONENTS
 #   Action2.action
 # )
 
-## Generate added messages and services with any dependencies listed here
+# Generate added messages and services with any dependencies listed here
 # generate_messages(
 #   DEPENDENCIES
 #   iarc7_msgs
@@ -102,12 +102,12 @@ find_package(catkin REQUIRED COMPONENTS
 ## LIBRARIES: libraries you create in this project that dependent projects also need
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
-#catkin_package(
-#  INCLUDE_DIRS include
+catkin_package(
+  INCLUDE_DIRS include
 #  LIBRARIES iarc7_fc_comms
 #  CATKIN_DEPENDS iarc7_msgs message_runtime
 #  DEPENDS system_lib
-#)
+)
 
 ###########
 ## Build ##
@@ -117,7 +117,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## Your package locations should be listed before other locations
 # include_directories(include)
 include_directories(
-  ${catkin_INCLUDE_DIRS}
+  include ${catkin_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
