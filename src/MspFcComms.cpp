@@ -83,7 +83,7 @@ namespace FcComms
         char RC_info[150];
         int j = 0;
         for (int i = 0 ; i < 18 ; i++) {
-            j+=snprintf(&RC_info[j], 150, ", %d", raw_values[i]);
+            j+=snprintf(&RC_info[j], (j >= 150 ? 0 : 150 - j), ", %d", raw_values[i]);
         }
         ROS_INFO(RC_info);
     }
