@@ -78,11 +78,11 @@ namespace FcComms
     {
         uint16_t raw_values[18];
         getRawRC(raw_values);
-        char RC_info[100];
+        char RC_info[150];
         int j = 0;
         for (int i = 0 ; i < 18 ; i++) {
-            j+=sprintf(&RC_info[j], ", %d", raw_values[i]);
-        } //This is Levi's for loop
+            j+=snprintf(&RC_info[j], 150, ", %d", raw_values[i]);
+        }
         ROS_INFO(RC_info);
     }
 
