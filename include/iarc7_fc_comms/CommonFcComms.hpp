@@ -179,7 +179,7 @@ void CommonFcComms<T>::updateSensors(const ros::TimerEvent&)
             flightControlImpl_.handleComms();
             publishTopics();
 
-            //ROS_WARN("%f to run", (ros::Time::now() - times).toSec());
+            ROS_DEBUG("Time to update FC sensors: %f", (ros::Time::now() - times).toSec());
             break;
 
         case FcCommsStatus::kConnecting:

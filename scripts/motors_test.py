@@ -27,7 +27,7 @@ if __name__ == '__main__':
         # Three second throttle ramp and three seconds off
         throttle = (throttle + 1) % 150
         if throttle <= 100:
-            command.throttle = float(throttle)
+            command.throttle = float(throttle)/100.0
             command.data.pitch = 0.0
             command.data.roll = 0.0
             command.data.yaw = 0.0
