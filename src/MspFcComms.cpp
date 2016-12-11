@@ -39,14 +39,14 @@ namespace FcComms
         float pitch = (message->data.pitch * FcCommsMspConf::kMspPitchScale) + FcCommsMspConf::kMspMidPoint;
         float yaw   = (message->data.yaw * FcCommsMspConf::kMspRollScale) + FcCommsMspConf::kMspMidPoint;
         float roll  = (message->data.roll * FcCommsMspConf::kMspYawScale) + FcCommsMspConf::kMspMidPoint;
-        float throttle = message->throttle * FcCommsMspConf::kMspThrottleScale;
+        float throttle = message->throttle * FcCommsMspConf::kMspThrottleScale + FcCommsMspConf::kMspThrottleStartPoint;
 
         #pragma GCC warning "Bounds check the floats so we can't send something to big or small"
-        translated_rc_values_[0] = static_cast<uint16_t>(pitch); 
-        //translated_rc_values is initialized in the corresponding .hpp file
-        translated_rc_values_[1] = static_cast<uint16_t>(yaw);
-        translated_rc_values_[2] = static_cast<uint16_t>(roll);
-        translated_rc_values_[3] = static_cast<uint16_t>(throttle);
+        translated_rc_values_[0] = static_cast<uint16_t>(roll);
+        translated_rc_values_[1] = static_cast<uint16_t>(pitch); 
+        translated_rc_values_[2] = static_cast<uint16_t>(throttle);
+        translated_rc_values_[3] = static_cast<uint16_t>(yaw);
+        ROS_INFO("THROTTLE: %f", throttle);
 
         #pragma GCC warning "Handle return"
         (void)sendRc();
@@ -63,19 +63,12 @@ namespace FcComms
     // Send the rc commands to the FC using the member array of rc values.
     FcCommsReturns MspFcComms::getRawRC(uint16_t (&rc_values)[18]) 
     {
-        char RC_info[200];
         MSP_RC msp_getrawRC;
-        sendMessage(msp_getrawRC);
-        
+        sendMessage(msp_getrawRC);        
         msp_getrawRC.getRc(rc_values); 
-
-
-        uint32_t j{0};
-        j+=sprintf(RC_info, "Raw Rc: %d", rc_values[0]);
-
-        //Look at getstatus for a todo regarding ROS::debug
     }
 
+    // Debug function to print the raw rc values, not called from anywhere but can be used for debugging
     void MspFcComms::printRawRC()
     {
         uint16_t raw_values[18];
@@ -264,9 +257,6 @@ namespace FcComms
 
     FcCommsReturns MspFcComms::handleComms()
     {   
-        //print the raw RC
-        printRawRC();
-
         // Check Connection
         // Check that the serial port is still open.
         if(fc_serial_->isOpen() == false)

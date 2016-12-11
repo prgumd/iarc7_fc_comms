@@ -45,7 +45,8 @@ namespace FcComms
         static constexpr const float kMspPitchScale{10.0}; // Should be filled in with values based on (kMspMax-kMspMidpoint) / max_angle
         static constexpr const float kMspRollScale{10.0};  // Should be filled in with values based on (kMspMax-kMspMidpoint) / max_angle
         static constexpr const float kMspYawScale{10.0};   // Should be filled in with values based on (kMspMax-kMspMidpoint) / max_angle
-        static constexpr const float kMspThrottleScale{(2000.0-1000.0) / 100.0};  // (Max-Min)/100 e.g. scale 0% to 100% to min/max throttle
+        static constexpr const float kMspThrottleStartPoint{950.0};
+        static constexpr const float kMspThrottleScale{(2000.0-kMspThrottleStartPoint)};  // (Max-Min) * throttle + min where throttle is ranged from 0-1
 
     };
 

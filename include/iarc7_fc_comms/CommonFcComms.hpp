@@ -144,16 +144,16 @@ void CommonFcComms<T>::publishTopics()
     #pragma GCC warning "TODO handle failure"
     flightControlImpl_.getBattery(battery.data);
 
-    ROS_INFO("Autopilot_enabled: %d", fc.auto_pilot);
-    ROS_INFO("Armed: %d", fc.armed);
+    ROS_DEBUG("Autopilot_enabled: %d", fc.auto_pilot);
+    ROS_DEBUG("Armed: %d", fc.armed);
     status_publisher.publish(fc);
-    ROS_INFO("Battery level: %f", battery.data);
+    ROS_DEBUG("Battery level: %f", battery.data);
     battery_publisher.publish(battery);
 
 
     double attitude[3];
     flightControlImpl_.getAttitude(attitude);
-    ROS_INFO("Attitude: %f %f %f", attitude[0], attitude[1], attitude[2]);
+    ROS_DEBUG("Attitude: %f %f %f", attitude[0], attitude[1], attitude[2]);
     sendOrientationTransform(attitude);
 }
 
@@ -161,6 +161,10 @@ void CommonFcComms<T>::publishTopics()
 template<class T>
 void CommonFcComms<T>::updateSensors(const ros::TimerEvent&)
 {
+
+    ros::Time times = ros::Time::now();
+
+
     // Do different things based on the current connection status.
     switch(flightControlImpl_.getConnectionStatus())
     {
@@ -171,10 +175,11 @@ void CommonFcComms<T>::updateSensors(const ros::TimerEvent&)
             break;
         
         case FcCommsStatus::kConnected:
-            ROS_INFO("FC_comms updating FC sensors");
             #pragma GCC warning "TODO handle failure"
             flightControlImpl_.handleComms();
             publishTopics();
+
+            ROS_DEBUG("Time to update FC sensors: %f", (ros::Time::now() - times).toSec());
             break;
 
         case FcCommsStatus::kConnecting:
