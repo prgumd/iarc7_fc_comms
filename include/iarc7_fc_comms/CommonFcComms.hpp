@@ -30,8 +30,8 @@ namespace FcComms{
         // Used to make sure this class remains a singleton.
         static CommonFcComms<T>& getInstance();
 
-        FcCommsReturns init();
-        
+        FcCommsReturns __attribute__((warn_unused_result)) init();
+
         FcCommsReturns run(int argc, char **argv);
 
         //Delete copy constructors, assignment operator
@@ -94,15 +94,38 @@ CommonFcComms<T>& CommonFcComms<T>::getInstance()
 template<class T>
 FcCommsReturns CommonFcComms<T>::init()
 {
-    // Should error check or something
-
     battery_publisher = nh_.advertise<std_msgs::Float32>("fc_battery", 50);
-    status_publisher = nh_.advertise<iarc7_msgs::FlightControllerStatus>("fc_status", 50);
-    uav_angle_subscriber = nh_.subscribe("uav_direction_command", 100, &T::sendFcDirection, &flightControlImpl_);
-    uav_arm_subscriber = nh_.subscribe("uav_arm", 100, &T::sendArmRequest, &flightControlImpl_);
+    if (!battery_publisher) {
+        ROS_ERROR("CommonFcComms failed to create battery publisher");
+        return FcCommsReturns::kReturnError;
+    }
+
+    status_publisher = nh_.advertise<iarc7_msgs::FlightControllerStatus>(
+            "fc_status", 50);
+    if (!status_publisher) {
+        ROS_ERROR("CommonFcComms failed to create status publisher");
+        return FcCommsReturns::kReturnError;
+    }
+
+    uav_angle_subscriber = nh_.subscribe("uav_direction_command",
+                                         100,
+                                         &T::sendFcDirection,
+                                         &flightControlImpl_);
+    if (!uav_angle_subscriber) {
+        ROS_ERROR("CommonFcComms failed to create angle subscriber");
+        return FcCommsReturns::kReturnError;
+    }
+
+    uav_arm_subscriber = nh_.subscribe("uav_arm",
+                                       100,
+                                       &T::sendArmRequest,
+                                       &flightControlImpl_);
+    if (!uav_arm_subscriber) {
+        ROS_ERROR("CommonFcComms failed to create arm subscriber");
+        return FcCommsReturns::kReturnError;
+    }
 
     ROS_INFO("FC Comms registered and subscribed to topics");
-
     return FcCommsReturns::kReturnOk;
 }
 

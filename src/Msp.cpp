@@ -18,7 +18,10 @@ int main(int argc, char **argv)
 
     CommonFcComms<MspFcComms>& fc = CommonFcComms<MspFcComms>::getInstance();
 
-    (void)fc.init();
+    if (fc.init() != FcCommsReturns::kReturnOk) {
+        ROS_ERROR("FcComms initialization failed");
+        return 1;
+    }
 
     if(fc.run(argc, argv) != FcCommsReturns::kReturnOk)
     {
