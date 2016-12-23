@@ -51,7 +51,7 @@ namespace FcComms{
         ros::Publisher status_publisher;
 
         // Publish to the FC sensor topics
-        void publishTopics();
+        FcCommsReturns __attribute__((warn_unused_result)) publishTopics();
 
         // Callback to update the sensors on the FC
         void updateSensors(const ros::TimerEvent&);
@@ -127,34 +127,45 @@ FcCommsReturns CommonFcComms<T>::run(int argc, char **argv)
 
 // Push the sensor data to the appropriate topics.
 template<class T>
-void CommonFcComms<T>::publishTopics()
+FcCommsReturns CommonFcComms<T>::publishTopics()
 {
+    FcCommsReturns status;
+
     iarc7_msgs::FlightControllerStatus fc;
-    #pragma GCC warning "TODO handle failure"
     bool temp_armed;
     bool temp_auto_pilot;
     bool temp_failsafe;
-    flightControlImpl_.getStatus(temp_armed, temp_auto_pilot, temp_failsafe);
-
+    status = flightControlImpl_.getStatus(temp_armed, temp_auto_pilot, temp_failsafe);
+    if (status != FcCommsReturns::kReturnOk) {
+        ROS_ERROR("Failed to retrieve flight controller status");
+        return status;
+    }
     fc.armed = temp_armed;
     fc.auto_pilot = temp_auto_pilot;
     fc.failsafe = temp_failsafe;
-    
-    std_msgs::Float32 battery;
-    #pragma GCC warning "TODO handle failure"
-    flightControlImpl_.getBattery(battery.data);
-
     ROS_DEBUG("Autopilot_enabled: %d", fc.auto_pilot);
     ROS_DEBUG("Armed: %d", fc.armed);
     status_publisher.publish(fc);
+
+    std_msgs::Float32 battery;
+    status = flightControlImpl_.getBattery(battery.data);
+    if (status != FcCommsReturns::kReturnOk) {
+        ROS_ERROR("Failed to retrieve flight controller battery info");
+        return status;
+    }
     ROS_DEBUG("Battery level: %f", battery.data);
     battery_publisher.publish(battery);
 
-
     double attitude[3];
-    flightControlImpl_.getAttitude(attitude);
+    status = flightControlImpl_.getAttitude(attitude);
+    if (status != FcCommsReturns::kReturnOk) {
+        ROS_ERROR("Failed to retrieve attitude from flight controller");
+        return status;
+    }
     ROS_DEBUG("Attitude: %f %f %f", attitude[0], attitude[1], attitude[2]);
     sendOrientationTransform(attitude);
+
+    return FcCommsReturns::kReturnOk;
 }
 
 // Update the sensors on the flight controller
