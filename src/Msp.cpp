@@ -23,7 +23,7 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    if(fc.run(argc, argv) != FcCommsReturns::kReturnOk)
+    if(fc.run() != FcCommsReturns::kReturnOk)
     {
         ROS_ERROR("FC Node exited with error");
         return 1;

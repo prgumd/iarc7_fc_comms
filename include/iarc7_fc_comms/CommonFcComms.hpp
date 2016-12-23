@@ -32,7 +32,7 @@ namespace FcComms{
 
         FcCommsReturns __attribute__((warn_unused_result)) init();
 
-        FcCommsReturns run(int argc, char **argv);
+        FcCommsReturns __attribute__((warn_unused_result)) run();
 
         //Delete copy constructors, assignment operator
         CommonFcComms(const CommonFcComms& rhs) = delete;
@@ -131,7 +131,7 @@ FcCommsReturns CommonFcComms<T>::init()
 
 // Main run loop of node.
 template<class T>
-FcCommsReturns CommonFcComms<T>::run(int argc, char **argv)
+FcCommsReturns CommonFcComms<T>::run()
 {
 
     // Set up a 10hz Timer to call updateSensors
