@@ -7,7 +7,9 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 #include <ros/ros.h>
+#include <cmath>
 #include <string>
+
 #include "iarc7_fc_comms/MspFcComms.hpp"
 #include "iarc7_fc_comms/CommonConf.hpp"
 #include "iarc7_fc_comms/MspConf.hpp"
@@ -30,23 +32,40 @@ namespace FcComms
     {
         delete fc_serial_;
     }
-
     // Scale the direction commands to rc values and put them in the rc values array.
     // Send the rc values
     void MspFcComms::sendFcDirection(const iarc7_msgs::OrientationThrottleStamped::ConstPtr& message)
     {
-        // Send out the rx values using sendMessage.
-        float pitch = (message->data.pitch * FcCommsMspConf::kMspPitchScale) + FcCommsMspConf::kMspMidPoint;
-        float yaw   = (message->data.yaw * FcCommsMspConf::kMspRollScale) + FcCommsMspConf::kMspMidPoint;
-        float roll  = (message->data.roll * FcCommsMspConf::kMspYawScale) + FcCommsMspConf::kMspMidPoint;
-        float throttle = message->throttle * FcCommsMspConf::kMspThrottleScale + FcCommsMspConf::kMspThrottleStartPoint;
+        // Constrain inputs
+        double constrained_roll     = std::max(CommonConf::kMinAllowedRoll,
+                                               std::min(CommonConf::kMaxAllowedRoll,
+                                                        message->data.roll));
+        double constrained_pitch    = std::max(CommonConf::kMinAllowedPitch,
+                                               std::min(CommonConf::kMaxAllowedPitch,
+                                                        message->data.pitch));
+        double constrained_throttle = std::max(CommonConf::kMinAllowedThrottle,
+                                               std::min(CommonConf::kMaxAllowedThrottle,
+                                                        message->throttle));
+        double constrained_yaw_rate = std::max(CommonConf::kMinAllowedYawRate,
+                                               std::min(CommonConf::kMaxAllowedYawRate,
+                                                        message->data.yaw));
 
-        #pragma GCC warning "Bounds check the floats so we can't send something to big or small"
-        translated_rc_values_[0] = static_cast<uint16_t>(roll);
-        translated_rc_values_[1] = static_cast<uint16_t>(pitch); 
-        translated_rc_values_[2] = static_cast<uint16_t>(throttle);
-        translated_rc_values_[3] = static_cast<uint16_t>(yaw);
-        ROS_INFO("THROTTLE: %f", throttle);
+        // Send out the rx values using sendMessage.
+        double roll_output     = (constrained_roll * FcCommsMspConf::kMspRollScale)
+                               + FcCommsMspConf::kMspMidPoint;
+        double pitch_output    = (constrained_pitch * FcCommsMspConf::kMspPitchScale)
+                               + FcCommsMspConf::kMspMidPoint;
+        double throttle_output = constrained_throttle * FcCommsMspConf::kMspThrottleScale
+                               + FcCommsMspConf::kMspThrottleStartPoint;
+        double yaw_rate_output = (constrained_yaw_rate * FcCommsMspConf::kMspYawScale)
+                               + FcCommsMspConf::kMspMidPoint;
+
+        translated_rc_values_[0] = static_cast<uint16_t>(roll_output);
+        translated_rc_values_[1] = static_cast<uint16_t>(pitch_output);
+        translated_rc_values_[2] = static_cast<uint16_t>(throttle_output);
+        translated_rc_values_[3] = static_cast<uint16_t>(yaw_rate_output);
+        ROS_INFO("THROTTLE: %f", throttle_output);
+
 
         #pragma GCC warning "Handle return"
         (void)sendRc();
