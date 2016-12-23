@@ -24,24 +24,30 @@ namespace FcComms
     public:
         MspFcComms();
         ~MspFcComms();
-    
+
         // Used to find and connect to the serial port
-        FcCommsReturns connect();
+        FcCommsReturns __attribute__((warn_unused_result))
+            connect();
 
         // Disconnect from FC, should be called before destructor.
-        FcCommsReturns disconnect();
+        FcCommsReturns  __attribute__((warn_unused_result))
+            disconnect();
 
         // Handle periodically updating polled info.
-        FcCommsReturns handleComms();
+        FcCommsReturns  __attribute__((warn_unused_result))
+            handleComms();
 
         // Get the flight status of the FC.
-        FcCommsReturns getStatus(bool& armed, bool& auto_pilot, bool& failsafe);
+        FcCommsReturns  __attribute__((warn_unused_result))
+            getStatus(bool& armed, bool& auto_pilot, bool& failsafe);
 
         // Get the battery voltage of the FC.
-        FcCommsReturns getBattery(float& voltage);
+        FcCommsReturns  __attribute__((warn_unused_result))
+            getBattery(float& voltage);
 
         // Get the attitude of the FC in the order roll pitch yaw
-        FcCommsReturns getAttitude(double (&attitude)[3]);
+        FcCommsReturns  __attribute__((warn_unused_result))
+            getAttitude(double (&attitude)[3]);
 
         // Getter for current connection status
         inline const FcCommsStatus getConnectionStatus()
@@ -50,7 +56,8 @@ namespace FcComms
         }
 
         // Send the flight controller RX values
-        void sendFcDirection(const iarc7_msgs::OrientationThrottleStamped::ConstPtr& message);
+        void sendFcDirection(
+            const iarc7_msgs::OrientationThrottleStamped::ConstPtr& message);
         void sendArmRequest(const iarc7_msgs::BoolStamped::ConstPtr& message);
         void printRawRC();
         bool isAutoPilotAllowed();
@@ -61,20 +68,26 @@ namespace FcComms
         MspFcComms& operator=(const MspFcComms& rhs) = delete;
 
         // Find the FC from a list of serial ports using its hardware ID.
-        FcCommsReturns findFc(std::string& serial_port);
+        FcCommsReturns  __attribute__((warn_unused_result))
+            findFc(std::string& serial_port);
 
         // Connect to the serial port and identify FC.
-        FcCommsReturns connectFc();
+        FcCommsReturns  __attribute__((warn_unused_result))
+            connectFc();
 
-        FcCommsReturns getRawRC(uint16_t (&rc_values)[18]);
+        FcCommsReturns  __attribute__((warn_unused_result))
+            getRawRC(
+                uint16_t (&rc_values)[18]);
 
 
         // Send the rc commands to the FC using the member array of rc values.
-        FcCommsReturns sendRc();
+        FcCommsReturns  __attribute__((warn_unused_result))
+            sendRc();
 
         // Send message using the MSP protocol
         template<typename T>
-        FcCommsReturns sendMessage(T& message);
+        FcCommsReturns  __attribute__((warn_unused_result))
+            sendMessage(T& message);
 
 
         // Serial object used to communicate with FC
