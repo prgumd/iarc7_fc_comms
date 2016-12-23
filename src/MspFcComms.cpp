@@ -37,17 +37,17 @@ namespace FcComms
     void MspFcComms::sendFcDirection(const iarc7_msgs::OrientationThrottleStamped::ConstPtr& message)
     {
         // Constrain inputs
-        double constrained_roll     = std::max(CommonConf::kMinAllowedRoll,
-                                               std::min(CommonConf::kMaxAllowedRoll,
+        double constrained_roll     = std::max(double(CommonConf::kMinAllowedRoll),
+                                               std::min(double(CommonConf::kMaxAllowedRoll),
                                                         message->data.roll));
-        double constrained_pitch    = std::max(CommonConf::kMinAllowedPitch,
-                                               std::min(CommonConf::kMaxAllowedPitch,
+        double constrained_pitch    = std::max(double(CommonConf::kMinAllowedPitch),
+                                               std::min(double(CommonConf::kMaxAllowedPitch),
                                                         message->data.pitch));
-        double constrained_throttle = std::max(CommonConf::kMinAllowedThrottle,
-                                               std::min(CommonConf::kMaxAllowedThrottle,
+        double constrained_throttle = std::max(double(CommonConf::kMinAllowedThrottle),
+                                               std::min(double(CommonConf::kMaxAllowedThrottle),
                                                         message->throttle));
-        double constrained_yaw_rate = std::max(CommonConf::kMinAllowedYawRate,
-                                               std::min(CommonConf::kMaxAllowedYawRate,
+        double constrained_yaw_rate = std::max(double(CommonConf::kMinAllowedYawRate),
+                                               std::min(double(CommonConf::kMaxAllowedYawRate),
                                                         message->data.yaw));
 
         // Send out the rx values using sendMessage.
@@ -419,4 +419,3 @@ namespace FcComms
         return FcCommsReturns::kReturnOk;
     }
 }
-  
