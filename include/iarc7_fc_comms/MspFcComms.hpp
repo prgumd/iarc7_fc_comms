@@ -10,11 +10,14 @@
 ////////////////////////////////////////////////////////////////////////////
 #include <ros/ros.h>
 #include <string>
+
 #include "CommonConf.hpp"
+#include "MspConf.hpp"
+#include "serial/serial.h"
+
 #include "iarc7_msgs/BoolStamped.h"
 #include "iarc7_msgs/Float64Stamped.h"
 #include "iarc7_msgs/OrientationThrottleStamped.h"
-#include "serial/serial.h"
 
 namespace FcComms
 {
@@ -77,7 +80,7 @@ namespace FcComms
 
         FcCommsReturns  __attribute__((warn_unused_result))
             getRawRC(
-                uint16_t (&rc_values)[18]);
+                uint16_t (&rc_values)[FcCommsMspConf::kMspReceivableChannels]);
 
 
         // Send the rc commands to the FC using the member array of rc values.

@@ -80,11 +80,15 @@ namespace FcComms
     }
 
     // Send the rc commands to the FC using the member array of rc values.
-    FcCommsReturns MspFcComms::getRawRC(uint16_t (&rc_values)[18]) 
+    FcCommsReturns MspFcComms::getRawRC(
+          uint16_t (&rc_values)[FcCommsMspConf::kMspReceivableChannels])
     {
         MSP_RC msp_getrawRC;
-        sendMessage(msp_getrawRC);        
-        msp_getrawRC.getRc(rc_values); 
+        FcCommsReturns status = sendMessage(msp_getrawRC);
+        if (status == FcCommsReturns::kReturnOk) {
+            msp_getrawRC.getRc(rc_values);
+        }
+        return status;
     }
 
     // Debug function to print the raw rc values, not called from anywhere but can be used for debugging
