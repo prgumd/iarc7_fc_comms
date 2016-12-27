@@ -195,9 +195,7 @@ FcCommsReturns CommonFcComms<T>::publishTopics()
 template<class T>
 void CommonFcComms<T>::updateSensors(const ros::TimerEvent&)
 {
-
     ros::Time times = ros::Time::now();
-
 
     // Do different things based on the current connection status.
     switch(flightControlImpl_.getConnectionStatus())
@@ -207,7 +205,7 @@ void CommonFcComms<T>::updateSensors(const ros::TimerEvent&)
             // We don't care about the return value we just reconnect.
             (void)flightControlImpl_.connect();
             break;
-        
+
         case FcCommsStatus::kConnected:
             #pragma GCC warning "TODO handle failure"
             flightControlImpl_.handleComms();
@@ -230,7 +228,7 @@ void CommonFcComms<T>::sendOrientationTransform(double (&attitude)[3])
 {
   static tf2_ros::TransformBroadcaster br;
   geometry_msgs::TransformStamped transformStamped;
-  
+
   transformStamped.header.stamp = ros::Time::now();
   transformStamped.header.frame_id = CommonConf::kTfParentName;
   transformStamped.child_frame_id = CommonConf::kTfChildName;

@@ -31,6 +31,7 @@ MspFcComms::~MspFcComms()
 {
     delete fc_serial_;
 }
+
 // Scale the direction commands to rc values and put them in the rc values array.
 // Send the rc values
 void MspFcComms::sendFcDirection(const iarc7_msgs::OrientationThrottleStamped::ConstPtr& message)
@@ -294,7 +295,7 @@ FcCommsReturns MspFcComms::findFc(std::string& serial_port)
 }
 
 FcCommsReturns MspFcComms::handleComms()
-{   
+{
     // Check Connection
     // Check that the serial port is still open.
     if(fc_serial_->isOpen() == false)
@@ -327,7 +328,7 @@ FcCommsReturns MspFcComms::sendMessage(T& message)
         std::copy(FcCommsMspConf::kMspSendHeader, FcCommsMspConf::kMspSendHeader + 3, packet);
         packet[3] = message.data_length;
         packet[4] = message.message_id;
-        
+
         // Start off checksum calculation
         uint8_t checksum{message.data_length ^ message.message_id};
 
