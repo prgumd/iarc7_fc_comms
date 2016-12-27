@@ -62,7 +62,9 @@ namespace FcComms
         void sendFcDirection(
             const iarc7_msgs::OrientationThrottleStamped::ConstPtr& message);
         void sendArmRequest(const iarc7_msgs::BoolStamped::ConstPtr& message);
-        void printRawRC();
+
+        FcCommsReturns  __attribute__((warn_unused_result))
+            printRawRC();
 
         FcCommsReturns  __attribute__((warn_unused_result))
             isAutoPilotAllowed(bool& allowed);
