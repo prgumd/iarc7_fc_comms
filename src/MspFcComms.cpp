@@ -130,18 +130,19 @@ FcCommsReturns MspFcComms::sendRc()
 {
     MSP_SET_RAW_RC msp_rc;
     msp_rc.packRc(translated_rc_values_);
-    #pragma GCC warning "Handle return"
-    sendMessage(msp_rc);
+    return sendMessage(msp_rc);
 }
 
 FcCommsReturns MspFcComms::getBattery(float& voltage)
 {
     MSP_ANALOG analog;
-    #pragma GCC warning "Handle return"
-    sendMessage(analog);
-    voltage = analog.getVolts();
+    FcCommsReturns status = sendMessage(analog);
 
-    return FcCommsReturns::kReturnOk;
+    if (status == FcCommsReturns::kReturnOk) {
+        voltage = analog.getVolts();
+    }
+
+    return status;
 }
 
 FcCommsReturns MspFcComms::getStatus(bool& armed, bool& auto_pilot, bool& failsafe)
