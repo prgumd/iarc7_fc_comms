@@ -63,7 +63,9 @@ namespace FcComms
             const iarc7_msgs::OrientationThrottleStamped::ConstPtr& message);
         void sendArmRequest(const iarc7_msgs::BoolStamped::ConstPtr& message);
         void printRawRC();
-        bool isAutoPilotAllowed();
+
+        FcCommsReturns  __attribute__((warn_unused_result))
+            isAutoPilotAllowed(bool& allowed);
 
     private:
         // Don't allow the copy constructor or assignment.

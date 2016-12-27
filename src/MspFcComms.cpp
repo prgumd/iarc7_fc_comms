@@ -103,18 +103,27 @@ void MspFcComms::printRawRC()
     ROS_INFO("Raw RC values from FcComms: %s", RC_info);
 }
 
-bool MspFcComms::isAutoPilotAllowed()
+FcCommsReturns MspFcComms::isAutoPilotAllowed(bool& allowed)
 {
-    uint16_t autoRCvalues[18];
-    getRawRC(autoRCvalues);
-    if(autoRCvalues[8] > 1800)
-    {
-        return true;
+    uint16_t autoRCvalues[FcCommsMspConf::kMspReceivableChannels];
+
+    FcCommsReturns status = getRawRC(autoRCvalues);
+
+    if (status == FcCommsReturns::kReturnOk) {
+        uint16_t autopilot_value =
+            autoRCvalues[FcCommsMspConf::kMspAutoPilotAllowedChannel];
+
+        if (autopilot_value > FcCommsMspConf::kMspSwitchMidpoint)
+        {
+            allowed = true;
+        }
+        else
+        {
+            allowed = false;
+        }
     }
-    else
-    {
-        return false;
-    }
+
+    return status;
 }
 
 FcCommsReturns MspFcComms::sendRc()
@@ -141,23 +150,29 @@ FcCommsReturns MspFcComms::getStatus(bool& armed, bool& auto_pilot, bool& failsa
     // And could be quite a bit of work.
     #pragma GCC warning "Finish implementing auto_pilot and failsafe"
     MSP_STATUS status;
-    sendMessage(status);
-    armed = status.getArmed();
+    FcCommsReturns return_status = sendMessage(status);
 
-    MSP_RC rc_channels;
-    sendMessage(rc_channels);
-    auto_pilot = isAutoPilotAllowed(); 
+    if (return_status == FcCommsReturns::kReturnOk) {
+        armed = status.getArmed();
 
-    return FcCommsReturns::kReturnOk;
+        MSP_RC rc_channels;
+        return_status = isAutoPilotAllowed(auto_pilot);
+    }
+
+    return return_status;
 }
 
 // Get the attitude of the FC in the order roll pitch yaw
 FcCommsReturns MspFcComms::getAttitude(double (&attitude)[3])
 {
     MSP_ATTITUDE att;
-    (void)sendMessage(att);
-    att.getAttitude(attitude);
-    return FcCommsReturns::kReturnOk;
+    FcCommsReturns status = sendMessage(att);
+
+    if (status == FcCommsReturns::kReturnOk) {
+        att.getAttitude(attitude);
+    }
+
+    return status;
 }
 
 // Disconnect from FC, should be called before destructor.
