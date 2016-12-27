@@ -93,14 +93,14 @@ FcCommsReturns MspFcComms::getRawRC(
 // Debug function to print the raw rc values, not called from anywhere but can be used for debugging
 void MspFcComms::printRawRC()
 {
-    uint16_t raw_values[18];
+    uint16_t raw_values[FcCommsMspConf::kMspReceivableChannels];
     getRawRC(raw_values);
     char RC_info[150];
     int j = 0;
-    for (int i = 0 ; i < 18 ; i++) {
+    for (int i = 0 ; i < FcCommsMspConf::kMspReceivableChannels; i++) {
         j+=snprintf(&RC_info[j], (j >= 150 ? 0 : 150 - j), ", %d", raw_values[i]);
     }
-    ROS_INFO(RC_info);
+    ROS_INFO("Raw RC values from FcComms: %s", RC_info);
 }
 
 bool MspFcComms::isAutoPilotAllowed()
