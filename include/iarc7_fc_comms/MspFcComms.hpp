@@ -53,7 +53,7 @@ namespace FcComms
             getAttitude(double (&attitude)[3]);
 
         // Getter for current connection status
-        inline const FcCommsStatus getConnectionStatus()
+        inline const FcCommsStatus& getConnectionStatus() const
         {
             return fc_comms_status_;
         }
