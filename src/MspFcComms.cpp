@@ -331,11 +331,14 @@ FcCommsReturns MspFcComms::sendMessage(T& message)
         // Start off checksum calculation
         uint8_t checksum{message.data_length ^ message.message_id};
 
-        #pragma GCC warning "Convert for loops in this function to some cleaner form of array copy"
-        // Copy data into message and finish calculating checksum
+        // Copy data into message
+        std::copy(&message.send[0],
+                  &message.send[message.data_length],
+                  &packet[FcCommsMspConf::kMspPacketDataOffset]);
+
+        // Finish calcualting checksum
         for(int i = 0; i < message.data_length; i++)
         {
-            packet[FcCommsMspConf::kMspPacketDataOffset + i] = message.send[i];
             checksum ^= message.send[i];
         }
 
