@@ -44,19 +44,11 @@ namespace FcComms{
         // Class can only be made by class
         CommonFcComms() = default;
 
-        // This node's handle.
-        ros::NodeHandle nh_; 
-
-        // Publishers for FC sensors
-        ros::Publisher battery_publisher;
-        ros::Publisher status_publisher;
-
         // Publish to the FC sensor topics
         FcCommsReturns __attribute__((warn_unused_result)) publishTopics();
 
         // Callback to update the sensors on the FC
         void updateSensors(const ros::TimerEvent&);
-
 
         // Send out the transform for the level_quad to quad
         void sendOrientationTransform(double (&attitude)[3]);
@@ -72,6 +64,13 @@ namespace FcComms{
             last_arm_message_ptr_ = message;
             have_new_arm_message_ = true;
         }
+
+        // This node's handle
+        ros::NodeHandle nh_;
+
+        // Publishers for FC sensors
+        ros::Publisher battery_publisher;
+        ros::Publisher status_publisher;
 
         // Just use the default constructor
         T flightControlImpl_;
