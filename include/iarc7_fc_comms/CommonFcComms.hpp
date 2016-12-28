@@ -47,6 +47,10 @@ namespace FcComms{
         // Publish to the FC sensor topics
         FcCommsReturns __attribute__((warn_unused_result)) publishTopics();
 
+        // Attempt reconnection until timeout
+        // Timeout defaults to zero (don't timeout)
+        void reconnect(const ros::Duration& timeout = ros::Duration(0));
+
         // Callback to update the sensors on the FC
         void updateSensors(const ros::TimerEvent&);
 
@@ -206,6 +210,22 @@ FcCommsReturns CommonFcComms<T>::publishTopics()
     return FcCommsReturns::kReturnOk;
 }
 
+// Attempt to reconnect, blocking until successful
+template<class T>
+void CommonFcComms<T>::reconnect(const ros::Duration& timeout) {
+    FcCommsReturns status;
+    ros::Time start_time = ros::Time::now();
+    do {
+        status = flightControlImpl_.disconnect();
+    } while (status != FcCommsReturns::kReturnOk
+          && (timeout == ros::Duration(0) || ros::Time::now() - start_time < timeout));
+
+    do {
+        status = flightControlImpl_.connect();
+    } while (status != FcCommsReturns::kReturnOk
+          && (timeout == ros::Duration(0) || ros::Time::now() - start_time < timeout));
+}
+
 // Update the sensors on the flight controller
 template<class T>
 void CommonFcComms<T>::updateSensors(const ros::TimerEvent&)
@@ -219,31 +239,41 @@ void CommonFcComms<T>::updateSensors(const ros::TimerEvent&)
     {
         case FcCommsStatus::kDisconnected:
             ROS_WARN("FC_Comms disconnected");
-            // We don't care about the return value we just reconnect.
-            flightControlImpl_.connect();
+            reconnect();
             break;
 
         case FcCommsStatus::kConnected:
-            #pragma GCC warning "TODO handle failure"
-            flightControlImpl_.handleComms();
+            status = flightControlImpl_.handleComms();
+            while (status != FcCommsReturns::kReturnOk) {
+                reconnect();
+                status = flightControlImpl_.handleComms();
+            }
 
-            if (have_new_direction_command_message_) {
+            while (have_new_direction_command_message_) {
                 status = flightControlImpl_.processDirectionCommandMessage(
                              last_direction_command_message_ptr_);
                 if (status == FcCommsReturns::kReturnOk) {
                     have_new_direction_command_message_ = false;
+                } else {
+                    reconnect();
                 }
             }
 
-            if (have_new_arm_message_) {
+            while (have_new_arm_message_) {
                 status = flightControlImpl_.processArmMessage(
                              last_arm_message_ptr_);
                 if (status == FcCommsReturns::kReturnOk) {
                     have_new_arm_message_ = false;
+                } else {
+                    reconnect();
                 }
             }
 
-            publishTopics();
+            status = publishTopics();
+            while (status != FcCommsReturns::kReturnOk) {
+                reconnect();
+                status = publishTopics();
+            }
 
             ROS_DEBUG("Time to update FC sensors: %f", (ros::Time::now() - times).toSec());
             break;
