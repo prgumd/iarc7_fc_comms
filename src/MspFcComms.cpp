@@ -152,7 +152,6 @@ FcCommsReturns MspFcComms::getStatus(bool& armed, bool& auto_pilot, bool& failsa
 {
     // Adding the autopilot flag is probably going to require modifying the FC firmware
     // And could be quite a bit of work.
-    #pragma GCC warning "Finish implementing auto_pilot and failsafe"
     MSP_STATUS status;
     FcCommsReturns return_status = sendMessage(status);
 
@@ -162,6 +161,9 @@ FcCommsReturns MspFcComms::getStatus(bool& armed, bool& auto_pilot, bool& failsa
         MSP_RC rc_channels;
         return_status = isAutoPilotAllowed(auto_pilot);
     }
+
+    // TODO Finish implementing autopilot and failsafe
+    failsafe = false;
 
     return return_status;
 }
@@ -405,7 +407,7 @@ FcCommsReturns MspFcComms::receiveResponseAfterSend(
         // Resulting buffer length is data length + message id length + crc
         uint8_t message_length_no_header = data_length + 1 + 1;
         uint8_t buffer[message_length_no_header];
-        #pragma GCC warning "TODO check how many bytes were received."
+
         uint8_t message_length_read = fc_serial_->read(&buffer[0], message_length_no_header);
         if(buffer[0] != packet_id)
         {
