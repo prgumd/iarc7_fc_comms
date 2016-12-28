@@ -59,9 +59,12 @@ namespace FcComms
         }
 
         // Send the flight controller RX values
-        void sendFcDirection(
-            const iarc7_msgs::OrientationThrottleStamped::ConstPtr& message);
-        void sendArmRequest(const iarc7_msgs::BoolStamped::ConstPtr& message);
+        FcCommsReturns  __attribute__((warn_unused_result))
+            processDirectionCommandMessage(
+                const iarc7_msgs::OrientationThrottleStamped::ConstPtr& message);
+        FcCommsReturns  __attribute__((warn_unused_result))
+            processArmMessage(
+                const iarc7_msgs::BoolStamped::ConstPtr& message);
 
         FcCommsReturns  __attribute__((warn_unused_result))
             printRawRC();

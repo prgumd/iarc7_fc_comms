@@ -34,7 +34,8 @@ MspFcComms::~MspFcComms()
 
 // Scale the direction commands to rc values and put them in the rc values array.
 // Send the rc values
-void MspFcComms::sendFcDirection(const iarc7_msgs::OrientationThrottleStamped::ConstPtr& message)
+FcCommsReturns MspFcComms::processDirectionCommandMessage(
+    const iarc7_msgs::OrientationThrottleStamped::ConstPtr& message)
 {
     // Constrain inputs
     double constrained_roll     = std::max(double(CommonConf::kMinAllowedRoll),
@@ -66,17 +67,15 @@ void MspFcComms::sendFcDirection(const iarc7_msgs::OrientationThrottleStamped::C
     translated_rc_values_[3] = static_cast<uint16_t>(yaw_rate_output);
     ROS_INFO("THROTTLE: %f", throttle_output);
 
-
-    #pragma GCC warning "Handle return"
-    (void)sendRc();
+    return sendRc();
 }
 
-void MspFcComms::sendArmRequest(const iarc7_msgs::BoolStamped::ConstPtr& message)
+FcCommsReturns MspFcComms::processArmMessage(
+      const iarc7_msgs::BoolStamped::ConstPtr& message)
 {
     // Try to arm, Values over 1800 arm the FC
     translated_rc_values_[4] = (message->data == true) ? 2000 : 1000;
-    #pragma GCC warning "Handle return"
-    (void)sendRc();
+    return sendRc();
 }
 
 // Send the rc commands to the FC using the member array of rc values.

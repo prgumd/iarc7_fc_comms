@@ -14,6 +14,7 @@
 #include <tf2_ros/transform_broadcaster.h>
 #include <geometry_msgs/TransformStamped.h>
 #include "CommonConf.hpp"
+#include "iarc7_msgs/BoolStamped.h"
 #include "iarc7_msgs/FlightControllerStatus.h"
 #include "iarc7_msgs/Float64Stamped.h"
 #include "iarc7_msgs/OrientationThrottleStamped.h"
@@ -62,6 +63,18 @@ namespace FcComms{
         // Send out the transform for the level_quad to quad
         void sendOrientationTransform(double (&attitude)[3]);
 
+        inline void uavDirectionCommandMessageHandler(
+                const iarc7_msgs::OrientationThrottleStamped::ConstPtr& message) {
+            last_direction_command_message_ptr_ = message;
+            have_new_direction_command_message_ = true;
+        }
+
+        inline void uavArmMessageHandler(
+                const iarc7_msgs::BoolStamped::ConstPtr& message) {
+            last_arm_message_ptr_ = message;
+            have_new_arm_message_ = true;
+        }
+
         // Just use the default constructor
         T flightControlImpl_;
 
@@ -74,6 +87,11 @@ namespace FcComms{
         // Subscriber for uav_arm
         ros::Subscriber uav_arm_subscriber;
 
+        iarc7_msgs::OrientationThrottleStamped::ConstPtr last_direction_command_message_ptr_;
+        iarc7_msgs::BoolStamped::ConstPtr last_arm_message_ptr_;
+
+        bool have_new_direction_command_message_ = false;
+        bool have_new_arm_message_ = false;
     };
 }
 
@@ -109,8 +127,8 @@ FcCommsReturns CommonFcComms<T>::init()
 
     uav_angle_subscriber = nh_.subscribe("uav_direction_command",
                                          100,
-                                         &T::sendFcDirection,
-                                         &flightControlImpl_);
+                                         &CommonFcComms::uavDirectionCommandMessageHandler,
+                                         this);
     if (!uav_angle_subscriber) {
         ROS_ERROR("CommonFcComms failed to create angle subscriber");
         return FcCommsReturns::kReturnError;
@@ -118,8 +136,8 @@ FcCommsReturns CommonFcComms<T>::init()
 
     uav_arm_subscriber = nh_.subscribe("uav_arm",
                                        100,
-                                       &T::sendArmRequest,
-                                       &flightControlImpl_);
+                                       &CommonFcComms::uavArmMessageHandler,
+                                       this);
     if (!uav_arm_subscriber) {
         ROS_ERROR("CommonFcComms failed to create arm subscriber");
         return FcCommsReturns::kReturnError;
@@ -197,18 +215,37 @@ void CommonFcComms<T>::updateSensors(const ros::TimerEvent&)
 {
     ros::Time times = ros::Time::now();
 
+    FcCommsReturns status;
+
     // Do different things based on the current connection status.
     switch(flightControlImpl_.getConnectionStatus())
     {
         case FcCommsStatus::kDisconnected:
             ROS_WARN("FC_Comms disconnected");
             // We don't care about the return value we just reconnect.
-            (void)flightControlImpl_.connect();
+            flightControlImpl_.connect();
             break;
 
         case FcCommsStatus::kConnected:
             #pragma GCC warning "TODO handle failure"
             flightControlImpl_.handleComms();
+
+            if (have_new_direction_command_message_) {
+                status = flightControlImpl_.processDirectionCommandMessage(
+                             last_direction_command_message_ptr_);
+                if (status == FcCommsReturns::kReturnOk) {
+                    have_new_direction_command_message_ = false;
+                }
+            }
+
+            if (have_new_arm_message_) {
+                status = flightControlImpl_.processArmMessage(
+                             last_arm_message_ptr_);
+                if (status == FcCommsReturns::kReturnOk) {
+                    have_new_arm_message_ = false;
+                }
+            }
+
             publishTopics();
 
             ROS_DEBUG("Time to update FC sensors: %f", (ros::Time::now() - times).toSec());
