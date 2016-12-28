@@ -152,19 +152,17 @@ FcCommsReturns CommonFcComms<T>::init()
 template<class T>
 FcCommsReturns CommonFcComms<T>::run()
 {
-
-    // Set up a 10hz Timer to call updateSensors
-    ros::Timer timer = nh_.createTimer(ros::Duration(CommonConf::kFcSensorsUpdatePeriod), &CommonFcComms::updateSensors, this);
+    // Set up a 10Hz Timer to call updateSensors
+    ros::Timer timer = nh_.createTimer(
+            ros::Duration(CommonConf::kFcSensorsUpdatePeriod),
+            &CommonFcComms::updateSensors,
+            this);
 
     // Wait till we get told to stop and service all callbacks
     ros::spin();
 
     // Disconnect from FC.
-    //TODO handle if something went wrong disconnecting.
-    #pragma GCC warning "TODO handle failure"
-    (void)flightControlImpl_.disconnect();
-
-    return FcCommsReturns::kReturnOk;
+    return flightControlImpl_.disconnect();
 }
 
 // Push the sensor data to the appropriate topics.
