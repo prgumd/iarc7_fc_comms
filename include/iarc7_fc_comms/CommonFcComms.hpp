@@ -57,8 +57,6 @@ namespace FcComms{
         // Callback to update the sensors on the FC
         void updateSensors(const ros::TimerEvent&);
 
-        // Send FC angles
-        void sendFcDirection(const iarc7_msgs::OrientationThrottleStamped::ConstPtr& message);
 
         // Send out the transform for the level_quad to quad
         void sendOrientationTransform(double (&attitude)[3]);
