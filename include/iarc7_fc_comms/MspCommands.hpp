@@ -177,6 +177,7 @@ namespace FcComms
             // Jetson runs in little endian mode and the FC
             // Receives data in big endian
             // Jetson sends back 18 channels, two bytes each.
+            // Attitude is always 3 angles (e.g. roll, pitch, and yaw)
             for(uint32_t i = 0; i < 3; i++)
             {
                 // Unpack the value
