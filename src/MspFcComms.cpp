@@ -65,7 +65,6 @@ FcCommsReturns MspFcComms::processDirectionCommandMessage(
     translated_rc_values_[1] = static_cast<uint16_t>(pitch_output);
     translated_rc_values_[2] = static_cast<uint16_t>(throttle_output);
     translated_rc_values_[3] = static_cast<uint16_t>(yaw_rate_output);
-    ROS_INFO("THROTTLE: %f", throttle_output);
 
     return sendRc();
 }
@@ -101,7 +100,7 @@ FcCommsReturns MspFcComms::printRawRC()
         for (int i = 0 ; i < FcCommsMspConf::kMspReceivableChannels; i++) {
             j+=snprintf(&RC_info[j], (j >= 150 ? 0 : 150 - j), ", %d", raw_values[i]);
         }
-        ROS_INFO("Raw RC values from FcComms: %s", RC_info);
+        ROS_DEBUG("Raw RC values from FcComms: %s", RC_info);
     }
     return status;
 }

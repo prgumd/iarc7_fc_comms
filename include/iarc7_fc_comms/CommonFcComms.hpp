@@ -152,7 +152,7 @@ FcCommsReturns CommonFcComms<T>::init()
 template<class T>
 FcCommsReturns CommonFcComms<T>::run()
 {
-    // Set up a 10Hz Timer to call updateSensors
+    // Set up a timer to call updateSensors
     ros::Timer timer = nh_.createTimer(
             ros::Duration(CommonConf::kFcSensorsUpdatePeriod),
             &CommonFcComms::updateSensors,
