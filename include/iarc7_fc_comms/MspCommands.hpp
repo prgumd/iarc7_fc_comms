@@ -49,13 +49,12 @@ namespace FcComms
 
         uint8_t response[FcCommsMspConf::kMspMaxDataLength];
 
-        void getRc(uint16_t (&rc_values)[18])
+        void getRc(uint16_t (&rc_values)[FcCommsMspConf::kMspReceivableChannels])
         {
             // Jetson runs in little endian mode and the FC
             // Receives data in big endian
             // Jetson sends back 18 channels, two bytes each.
-            #pragma GCC warning "Get rid of this hardcoded number"
-            for(int i = 0; i < 18; i++)
+            for(int i = 0; i < FcCommsMspConf::kMspReceivableChannels; i++)
             {
                 rc_values[i] = response[i*2] | (response[(i*2)+1] << 8);
             }
@@ -73,7 +72,9 @@ namespace FcComms
         MSP_SET_RAW_RC& operator=(const MSP_SET_RAW_RC& rhs) = delete;
 
         static const uint8_t message_id{200};
-        static const uint8_t data_length{8*2}; // 8 channels 2 bytes each
+
+        // 8 channels 2 bytes each
+        static const uint8_t data_length{FcCommsMspConf::kMspSettableChannels*2};
 
         static constexpr char const * const string_name{"MSP_SET_RAW_RC"};
 
@@ -81,14 +82,16 @@ namespace FcComms
 
         uint8_t response[FcCommsMspConf::kMspMaxDataLength];
 
-        void packRc(uint16_t (&rc_values)[8])
+        void packRc(uint16_t (&rc_values)[FcCommsMspConf::kMspSettableChannels])
         {
             // Jetson runs in little endian mode and the FC
             // Receives data in big endian
             uint8_t* data_ptr = reinterpret_cast<uint8_t*>(&rc_values[0]);
-            // 8 channels sent, two bytes each
-            #pragma GCC warning "Get rid of hardcoded number"
-            std::copy(data_ptr, data_ptr+16, send);
+
+            // channels are two bytes each
+            std::copy(data_ptr,
+                      data_ptr + 2*FcCommsMspConf::kMspSettableChannels,
+                      send);
         }
     };
 
@@ -174,7 +177,7 @@ namespace FcComms
             // Jetson runs in little endian mode and the FC
             // Receives data in big endian
             // Jetson sends back 18 channels, two bytes each.
-            #pragma GCC warning "Get rid of this hardcoded number"
+            // Attitude is always 3 angles (e.g. roll, pitch, and yaw)
             for(uint32_t i = 0; i < 3; i++)
             {
                 // Unpack the value

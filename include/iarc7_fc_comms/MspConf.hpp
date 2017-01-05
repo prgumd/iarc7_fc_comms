@@ -31,6 +31,16 @@ namespace FcComms
         // Longest MSP data section
         static const uint8_t kMspMaxDataLength = 127;
 
+        // Number of channels read from the flight controller
+        static const uint8_t kMspReceivableChannels = 18;
+
+        // Number of channels set on the flight controller
+        static const uint8_t kMspSettableChannels = 8;
+
+        static const uint8_t kMspAutoPilotAllowedChannel = 8;
+
+        static const uint16_t kMspSwitchMidpoint = 1800;
+
         // Length of packet header
         static const uint8_t kMspHeaderSize = 3;
 

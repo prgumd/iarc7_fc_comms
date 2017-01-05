@@ -10,30 +10,40 @@
 namespace FcComms
 {
 
-    // Used for the result of a command
-    enum class FcCommsReturns
-    {
-        kReturnOk,
-        kReturnError
-    };
+// Used for the result of a command
+enum class FcCommsReturns
+{
+    kReturnOk,
+    kReturnError
+};
 
-    // Used for the current state of communication with flight controller
-    enum class FcCommsStatus
-    {
-        kDisconnected,
-        kConnected,
-        kConnecting
-    };
-    
-    struct CommonConf
-    {
-        // In seconds.
-        static constexpr const float kFcSensorsUpdatePeriod{0.2};
+// Used for the current state of communication with flight controller
+enum class FcCommsStatus
+{
+    kDisconnected,
+    kConnected,
+    kConnecting
+};
 
-        static constexpr const char* kTfParentName{"level_quad"};
-        static constexpr const char* kTfChildName{"quad"};
+struct CommonConf
+{
+    // In seconds.
+    static constexpr const float kFcSensorsUpdatePeriod{0.2};
 
-    };
-}
+    static constexpr const double kMinAllowedRoll = -0.25;
+    static constexpr const double kMaxAllowedRoll = 0.25;
+    static constexpr const double kMinAllowedPitch = -0.25;
+    static constexpr const double kMaxAllowedPitch = 0.25;
+    static constexpr const double kMinAllowedThrottle = 0;
+    static constexpr const double kMaxAllowedThrottle = 1;
+    static constexpr const double kMinAllowedYawRate = -0.5;
+    static constexpr const double kMaxAllowedYawRate = 0.5;
+
+    static constexpr const char* kTfParentName{"level_quad"};
+    static constexpr const char* kTfChildName{"quad"};
+
+};
+
+} // namespace FcComms
 
 #endif // End COMMON_CONF_HPP
