@@ -14,6 +14,7 @@
 #include <tf2_ros/transform_broadcaster.h>
 #include <geometry_msgs/TransformStamped.h>
 #include "CommonConf.hpp"
+#include "iarc7_safety/SafetyClient.hpp"
 #include "iarc7_msgs/BoolStamped.h"
 #include "iarc7_msgs/FlightControllerStatus.h"
 #include "iarc7_msgs/Float64Stamped.h"
@@ -42,7 +43,7 @@ namespace FcComms{
     private:
 
         // Class can only be made by class
-        CommonFcComms() = default;
+        CommonFcComms();
 
         // Publish to the FC sensor topics
         FcCommsReturns __attribute__((warn_unused_result)) publishTopics();
@@ -72,6 +73,9 @@ namespace FcComms{
         // This node's handle
         ros::NodeHandle nh_;
 
+        // Safety client
+        Iarc7Safety::SafetyClient safety_client_;
+
         // Publishers for FC sensors
         ros::Publisher battery_publisher;
         ros::Publisher status_publisher;
@@ -99,6 +103,22 @@ namespace FcComms{
 using namespace FcComms;
 
 template<class T>
+CommonFcComms<T>::CommonFcComms() :
+nh_(),
+safety_client_(nh_, "fc_comms_msp"),
+battery_publisher(),
+status_publisher(),
+flightControlImpl_(),
+uav_angle_subscriber(),
+uav_throttle_subscriber(),
+uav_arm_subscriber(),
+last_direction_command_message_ptr_(),
+last_arm_message_ptr_()
+{
+
+}
+
+template<class T>
 CommonFcComms<T>& CommonFcComms<T>::getInstance()
 {
     // Allow only one instance
@@ -113,6 +133,8 @@ CommonFcComms<T>& CommonFcComms<T>::getInstance()
 template<class T>
 FcCommsReturns CommonFcComms<T>::init()
 {
+    ROS_ASSERT_MSG(safety_client_.formBond(), "fc_comms_msp: Could not form bond with safety client");
+
     battery_publisher = nh_.advertise<std_msgs::Float32>("fc_battery", 50);
     if (!battery_publisher) {
         ROS_ERROR("CommonFcComms failed to create battery publisher");
@@ -230,6 +252,9 @@ void CommonFcComms<T>::updateSensors(const ros::TimerEvent&)
 {
     ros::Time times = ros::Time::now();
 
+    // Check the safety client before updating anything
+    ROS_ASSERT_MSG(!safety_client_.isFatalActive(), "fc_comms_msp: fatal event from safety");
+
     FcCommsReturns status;
 
     // Do different things based on the current connection status.
@@ -247,23 +272,42 @@ void CommonFcComms<T>::updateSensors(const ros::TimerEvent&)
                 status = flightControlImpl_.handleComms();
             }
 
-            while (have_new_direction_command_message_) {
+            // Check if we need to have a safety response
+            if(safety_client_.isSafetyActive())
+            {
+                // Override whatever commands are available and attempt to land
+                iarc7_msgs::OrientationThrottleStamped land_command;
+                land_command.throttle = CommonConf::kSafetyLandingThrottle;
+
                 status = flightControlImpl_.processDirectionCommandMessage(
-                             last_direction_command_message_ptr_);
+                    static_cast<iarc7_msgs::OrientationThrottleStamped::ConstPtr>(&land_command));
+                
                 if (status == FcCommsReturns::kReturnOk) {
-                    have_new_direction_command_message_ = false;
+                    ROS_DEBUG("iarc7_fc_comms: sent safety landing command");
                 } else {
                     reconnect();
                 }
             }
+            else
+            {
+                while (have_new_direction_command_message_) {
+                    status = flightControlImpl_.processDirectionCommandMessage(
+                                 last_direction_command_message_ptr_);
+                    if (status == FcCommsReturns::kReturnOk) {
+                        have_new_direction_command_message_ = false;
+                    } else {
+                        reconnect();
+                    }
+                }
 
-            while (have_new_arm_message_) {
-                status = flightControlImpl_.processArmMessage(
-                             last_arm_message_ptr_);
-                if (status == FcCommsReturns::kReturnOk) {
-                    have_new_arm_message_ = false;
-                } else {
-                    reconnect();
+                while (have_new_arm_message_) {
+                    status = flightControlImpl_.processArmMessage(
+                                 last_arm_message_ptr_);
+                    if (status == FcCommsReturns::kReturnOk) {
+                        have_new_arm_message_ = false;
+                    } else {
+                        reconnect();
+                    }
                 }
             }
 

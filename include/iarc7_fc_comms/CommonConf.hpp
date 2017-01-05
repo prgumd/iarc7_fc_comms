@@ -38,6 +38,7 @@ struct CommonConf
     static constexpr const double kMaxAllowedThrottle = 1;
     static constexpr const double kMinAllowedYawRate = -0.5;
     static constexpr const double kMaxAllowedYawRate = 0.5;
+    static constexpr const double kSafetyLandingThrottle = 0.3;
 
     static constexpr const char* kTfParentName{"level_quad"};
     static constexpr const char* kTfChildName{"quad"};
