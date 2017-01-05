@@ -377,7 +377,7 @@ FcCommsReturns MspFcComms::sendMessage(T& message)
 }
 
 FcCommsReturns MspFcComms::receiveResponseAfterSend(
-      int8_t packet_id,
+      uint8_t packet_id,
       uint8_t (&response)[FcCommsMspConf::kMspMaxDataLength])
 {
     try

@@ -102,7 +102,7 @@ namespace FcComms
         // Receive response using the MSP protocol
         FcCommsReturns  __attribute__((warn_unused_result))
             receiveResponseAfterSend(
-                int8_t packet_id,
+                uint8_t packet_id,
                 uint8_t (&response)[FcCommsMspConf::kMspMaxDataLength]);
 
         // Serial object used to communicate with FC
