@@ -49,7 +49,7 @@ namespace FcComms{
         FcCommsReturns __attribute__((warn_unused_result)) publishTopics();
 
         // Attempt reconnection
-        FcCommsReturns reconnect();
+        void reconnect();
 
         // Callback to update the sensors on the FC
         void updateSensors(const ros::TimerEvent&);
@@ -231,7 +231,7 @@ FcCommsReturns CommonFcComms<T>::publishTopics()
 
 // Attempt to reconnect, blocking until successful
 template<class T>
-FcCommsReturns CommonFcComms<T>::reconnect() {
+void CommonFcComms<T>::reconnect() {
     FcCommsReturns status;
     ros::Time start_time = ros::Time::now();
 
@@ -240,6 +240,16 @@ FcCommsReturns CommonFcComms<T>::reconnect() {
     {
         status = flightControlImpl_.connect();
     }
+
+    if(status = FcCommsReturns::kReturnOk)
+    {
+        ROS_INFO("iarc7_fc_comms: Succesful reconnection to flight controller");
+    }
+    else
+    {
+        ROS_ERROR("iarc7_fc_comms: Failed reconnection to flight controller");
+    }
+
 
     return status;
 }
