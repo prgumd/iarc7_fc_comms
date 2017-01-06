@@ -51,12 +51,13 @@ namespace FcComms
         static constexpr char const * const kMspSendHeader{"$M<"};
 
         // MSP RC scaling factors
-        static constexpr const float kMspMidPoint{1500.0};
-        static constexpr const float kMspPitchScale{10.0}; // Should be filled in with values based on (kMspMax-kMspMidpoint) / max_angle
-        static constexpr const float kMspRollScale{10.0};  // Should be filled in with values based on (kMspMax-kMspMidpoint) / max_angle
-        static constexpr const float kMspYawScale{10.0};   // Should be filled in with values based on (kMspMax-kMspMidpoint) / max_angle
-        static constexpr const float kMspThrottleStartPoint{950.0};
-        static constexpr const float kMspThrottleScale{(2000.0-kMspThrottleStartPoint)};  // (Max-Min) * throttle + min where throttle is ranged from 0-1
+        static constexpr const double kMspMidPoint{1500.0};
+        static constexpr const double kMspPitchScale{10.0}; // Should be filled in with values based on (kMspMax-kMspMidpoint) / max_angle
+        static constexpr const double kMspRollScale{10.0};  // Should be filled in with values based on (kMspMax-kMspMidpoint) / max_angle
+        static constexpr const double kMspYawScale{10.0};   // Should be filled in with values based on (kMspMax-kMspMidpoint) / max_angle
+        static constexpr const double kMspThrottleStartPoint{950.0};
+        static constexpr const double kMspThrottleScale{(2000.0-kMspThrottleStartPoint)};  // (Max-Min) * throttle + min where throttle is ranged from 0-1
+        static constexpr const double kSafetyLandingThrottle{0.3};
 
     };
 

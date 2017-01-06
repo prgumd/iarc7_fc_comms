@@ -32,6 +32,38 @@ MspFcComms::~MspFcComms()
     delete fc_serial_;
 }
 
+FcCommsReturns MspFcComms::safetyLand()
+{
+    // Do not set the throttle higher than it was before
+    // This effectively limits the max throttle in FcCommsMspconf::kSafetyLandingThrottle
+    // to CommonConf::kMaxAllowedThrottle since translated_rc_values_[2] can't be set higher
+    // than CommonConf::kMaxAllowedThrottle
+
+    double current_throttle = (double(translated_rc_values_[2]) - FcCommsMspConf::kMspThrottleStartPoint)
+                            / FcCommsMspConf::kMspThrottleScale;
+
+    double throttle_output;
+
+    if (current_throttle < CommonConf::kMinAllowedThrottle + 0.01)
+    {
+        throttle_output = CommonConf::kMinAllowedThrottle;
+    }
+    else
+    {
+        throttle_output = FcCommsMspConf::kSafetyLandingThrottle;
+    }
+
+    double rc_output = throttle_output * FcCommsMspConf::kMspThrottleScale
+                     + FcCommsMspConf::kMspThrottleStartPoint;
+
+    translated_rc_values_[0] = 0.0;
+    translated_rc_values_[1] = 0.0;
+    translated_rc_values_[2] = static_cast<uint16_t>(rc_output);
+    translated_rc_values_[3] = 0.0;
+
+    return sendRc();
+}
+
 // Scale the direction commands to rc values and put them in the rc values array.
 // Send the rc values
 FcCommsReturns MspFcComms::processDirectionCommandMessage(
@@ -250,9 +282,6 @@ FcCommsReturns MspFcComms::connect()
 
         ROS_INFO("FC_Comms Connected to FC");
         fc_comms_status_ = FcCommsStatus::kConnected;
-
-        // Pause to allow the flight controller to come up
-        ros::Duration(2.0).sleep();
 
         return FcCommsReturns::kReturnOk;
     }

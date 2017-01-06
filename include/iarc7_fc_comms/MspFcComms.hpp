@@ -72,6 +72,9 @@ namespace FcComms
         FcCommsReturns  __attribute__((warn_unused_result))
             isAutoPilotAllowed(bool& allowed);
 
+        FcCommsReturns  __attribute__((warn_unused_result))
+            safetyLand();
+        
     private:
         // Don't allow the copy constructor or assignment.
         MspFcComms(const MspFcComms& rhs) = delete;
