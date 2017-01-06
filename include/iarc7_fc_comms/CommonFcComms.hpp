@@ -241,7 +241,7 @@ void CommonFcComms<T>::reconnect() {
         status = flightControlImpl_.connect();
     }
 
-    if(status = FcCommsReturns::kReturnOk)
+    if(status == FcCommsReturns::kReturnOk)
     {
         ROS_INFO("iarc7_fc_comms: Succesful reconnection to flight controller");
     }
@@ -249,9 +249,6 @@ void CommonFcComms<T>::reconnect() {
     {
         ROS_ERROR("iarc7_fc_comms: Failed reconnection to flight controller");
     }
-
-
-    return status;
 }
 
 // Update the sensors on the flight controller
@@ -275,10 +272,6 @@ void CommonFcComms<T>::updateSensors(const ros::TimerEvent&)
 
         case FcCommsStatus::kConnected:
             status = flightControlImpl_.handleComms();
-            while (status != FcCommsReturns::kReturnOk) {
-                reconnect();
-                status = flightControlImpl_.handleComms();
-            }
 
             // Check if we need to have a safety response
             if(safety_client_.isSafetyActive())
@@ -293,37 +286,25 @@ void CommonFcComms<T>::updateSensors(const ros::TimerEvent&)
                 if (status == FcCommsReturns::kReturnOk) {
                     ROS_DEBUG("iarc7_fc_comms: sent safety landing command");
                 } else {
-                    reconnect();
+                    ROS_DEBUG("iarc7_fc_comms: failed sending safety landing command");
                 }
             }
             else
             {
-                while (have_new_direction_command_message_) {
-                    status = flightControlImpl_.processDirectionCommandMessage(
-                                 last_direction_command_message_ptr_);
-                    if (status == FcCommsReturns::kReturnOk) {
-                        have_new_direction_command_message_ = false;
-                    } else {
-                        reconnect();
-                    }
+                status = flightControlImpl_.processDirectionCommandMessage(
+                             last_direction_command_message_ptr_);
+                if (status == FcCommsReturns::kReturnOk) {
+                    have_new_direction_command_message_ = false;
                 }
 
-                while (have_new_arm_message_) {
-                    status = flightControlImpl_.processArmMessage(
-                                 last_arm_message_ptr_);
-                    if (status == FcCommsReturns::kReturnOk) {
-                        have_new_arm_message_ = false;
-                    } else {
-                        reconnect();
-                    }
+                status = flightControlImpl_.processArmMessage(
+                             last_arm_message_ptr_);
+                if (status == FcCommsReturns::kReturnOk) {
+                    have_new_arm_message_ = false;
                 }
             }
 
             status = publishTopics();
-            while (status != FcCommsReturns::kReturnOk) {
-                reconnect();
-                status = publishTopics();
-            }
 
             ROS_DEBUG("Time to update FC sensors: %f", (ros::Time::now() - times).toSec());
             break;
