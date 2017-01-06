@@ -51,8 +51,23 @@ namespace FcComms{
         // Attempt reconnection
         void reconnect();
 
-        // Callback to update the sensors on the FC
-        void updateSensors(const ros::TimerEvent&);
+        // Update information from flight controller and send information
+        void update(const ros::TimerEvent&);
+
+        // Update flight controller status information
+        void updateFcStatus();
+
+        // Update flight controller status information
+        void updateSensors();
+
+        // Send arm message to flight controller
+        void updateArm();
+
+        // Send direction message to flight controller
+        void updateDirection();
+
+        // Activate the safety response of the flight controller impl
+        void activateFcSafety();
 
         // Send out the transform for the level_quad to quad
         void sendOrientationTransform(double (&attitude)[3]);
@@ -173,10 +188,10 @@ FcCommsReturns CommonFcComms<T>::init()
 template<class T>
 FcCommsReturns CommonFcComms<T>::run()
 {
-    // Set up a timer to call updateSensors
+    // Set up a timer to call update
     ros::Timer timer = nh_.createTimer(
             ros::Duration(CommonConf::kFcSensorsUpdatePeriod),
-            &CommonFcComms::updateSensors,
+            &CommonFcComms::update,
             this);
 
     // Wait till we get told to stop and service all callbacks
@@ -186,20 +201,17 @@ FcCommsReturns CommonFcComms<T>::run()
     return flightControlImpl_.disconnect();
 }
 
-// Push the sensor data to the appropriate topics.
+// Update flight controller status information
 template<class T>
-FcCommsReturns CommonFcComms<T>::publishTopics()
+void CommonFcComms<T>::updateFcStatus()
 {
-    FcCommsReturns status;
-
     iarc7_msgs::FlightControllerStatus fc;
     bool temp_armed;
     bool temp_auto_pilot;
     bool temp_failsafe;
-    status = flightControlImpl_.getStatus(temp_armed, temp_auto_pilot, temp_failsafe);
+    FcCommsReturns status = flightControlImpl_.getStatus(temp_armed, temp_auto_pilot, temp_failsafe);
     if (status != FcCommsReturns::kReturnOk) {
         ROS_ERROR("Failed to retrieve flight controller status");
-        return status;
     }
     fc.armed = temp_armed;
     fc.auto_pilot = temp_auto_pilot;
@@ -207,26 +219,86 @@ FcCommsReturns CommonFcComms<T>::publishTopics()
     ROS_DEBUG("Autopilot_enabled: %d", fc.auto_pilot);
     ROS_DEBUG("Armed: %d", fc.armed);
     status_publisher.publish(fc);
+}
 
+// Update flight controller sensor information
+template<class T>
+void CommonFcComms<T>::updateSensors()
+{
     std_msgs::Float32 battery;
-    status = flightControlImpl_.getBattery(battery.data);
+    FcCommsReturns status = flightControlImpl_.getBattery(battery.data);
     if (status != FcCommsReturns::kReturnOk) {
-        ROS_ERROR("Failed to retrieve flight controller battery info");
-        return status;
+        ROS_ERROR("iarc7_fc_comms: Failed to retrieve flight controller battery info");
     }
-    ROS_DEBUG("Battery level: %f", battery.data);
+    ROS_DEBUG("iarc7_fc_comms: Battery level: %f", battery.data);
     battery_publisher.publish(battery);
 
     double attitude[3];
     status = flightControlImpl_.getAttitude(attitude);
     if (status != FcCommsReturns::kReturnOk) {
-        ROS_ERROR("Failed to retrieve attitude from flight controller");
-        return status;
+        ROS_ERROR("iarc7_fc_comms: Failed to retrieve attitude from flight controller");
     }
-    ROS_DEBUG("Attitude: %f %f %f", attitude[0], attitude[1], attitude[2]);
+    ROS_DEBUG("iarc7_fc_comms: Attitude: %f %f %f", attitude[0], attitude[1], attitude[2]);
     sendOrientationTransform(attitude);
 
-    return FcCommsReturns::kReturnOk;
+}
+
+// Send arm message to flight controller
+template<class T>
+void CommonFcComms<T>::updateArm()
+{
+    if(have_new_arm_message_)
+    {
+        FcCommsReturns status = flightControlImpl_.processArmMessage(
+                     last_arm_message_ptr_);
+        if (status == FcCommsReturns::kReturnOk)
+        {
+            have_new_arm_message_ = false;
+        }
+        else
+        {
+            ROS_ERROR("iarc7_fc_comms: Failed to send arm message");
+        }
+    }
+}
+
+// Send direction message to flight controller
+template<class T>
+void CommonFcComms<T>::updateDirection()
+{
+    FcCommsReturns status{FcCommsReturns::kReturnOk};
+
+    if(have_new_direction_command_message_)
+    {
+        status = flightControlImpl_.processDirectionCommandMessage(
+                     last_direction_command_message_ptr_);
+        if (status == FcCommsReturns::kReturnOk)
+        {
+            have_new_direction_command_message_ = false;
+        }
+        else
+        {
+            ROS_ERROR("iarc7_fc_comms: Failed to send direction message");
+        }
+    }
+}
+
+// Activate the safety response of the flight controller impl
+template<class T>
+void CommonFcComms<T>::activateFcSafety()
+{
+    // Override whatever commands are available and attempt to land
+    iarc7_msgs::OrientationThrottleStamped land_command;
+    land_command.throttle = CommonConf::kSafetyLandingThrottle;
+
+    FcCommsReturns status = flightControlImpl_.processDirectionCommandMessage(
+        static_cast<iarc7_msgs::OrientationThrottleStamped::ConstPtr>(&land_command));
+    
+    if (status == FcCommsReturns::kReturnOk) {
+        ROS_WARN("iarc7_fc_comms: sent safety landing command");
+    } else {
+        ROS_ERROR("iarc7_fc_comms: failed sending safety landing command");
+    }
 }
 
 // Attempt to reconnect, blocking until successful
@@ -251,14 +323,14 @@ void CommonFcComms<T>::reconnect() {
     }
 }
 
-// Update the sensors on the flight controller
+// Update information from flight controller and send information
 template<class T>
-void CommonFcComms<T>::updateSensors(const ros::TimerEvent&)
+void CommonFcComms<T>::update(const ros::TimerEvent&)
 {
     ros::Time times = ros::Time::now();
 
     // Check the safety client before updating anything
-    ROS_ASSERT_MSG(!safety_client_.isFatalActive(), "fc_comms_msp: fatal event from safety");
+    ROS_ASSERT_MSG(!safety_client_.isFatalActive(), "iarc7_fc_comms: fatal event from safety");
 
     FcCommsReturns status;
 
@@ -272,48 +344,33 @@ void CommonFcComms<T>::updateSensors(const ros::TimerEvent&)
 
         case FcCommsStatus::kConnected:
             status = flightControlImpl_.handleComms();
+            if(status != FcCommsReturns::kReturnOk)
+            {
+                ROS_ERROR("iarc7_fc_comms: flight controller impl could not handle comms");
+            }
 
             // Check if we need to have a safety response
             if(safety_client_.isSafetyActive())
             {
-                // Override whatever commands are available and attempt to land
-                iarc7_msgs::OrientationThrottleStamped land_command;
-                land_command.throttle = CommonConf::kSafetyLandingThrottle;
-
-                status = flightControlImpl_.processDirectionCommandMessage(
-                    static_cast<iarc7_msgs::OrientationThrottleStamped::ConstPtr>(&land_command));
-                
-                if (status == FcCommsReturns::kReturnOk) {
-                    ROS_DEBUG("iarc7_fc_comms: sent safety landing command");
-                } else {
-                    ROS_DEBUG("iarc7_fc_comms: failed sending safety landing command");
-                }
+                activateFcSafety();
             }
             else
             {
-                status = flightControlImpl_.processDirectionCommandMessage(
-                             last_direction_command_message_ptr_);
-                if (status == FcCommsReturns::kReturnOk) {
-                    have_new_direction_command_message_ = false;
-                }
-
-                status = flightControlImpl_.processArmMessage(
-                             last_arm_message_ptr_);
-                if (status == FcCommsReturns::kReturnOk) {
-                    have_new_arm_message_ = false;
-                }
+                updateArm();
+                updateDirection();
             }
 
-            status = publishTopics();
+            updateFcStatus();
+            updateSensors();
 
-            ROS_DEBUG("Time to update FC sensors: %f", (ros::Time::now() - times).toSec());
+            ROS_DEBUG("iarc7_fc_comms: Time to update FC sensors: %f", (ros::Time::now() - times).toSec());
             break;
 
         case FcCommsStatus::kConnecting:
             break;
 
         default:
-            ROS_ASSERT_MSG(false, "FC_Comms has undefined state.");
+            ROS_ASSERT_MSG(false, "iarc7_fc_comms: FC_Comms has undefined state.");
     }
 }
 
