@@ -48,9 +48,8 @@ namespace FcComms{
         // Publish to the FC sensor topics
         FcCommsReturns __attribute__((warn_unused_result)) publishTopics();
 
-        // Attempt reconnection until timeout
-        // Timeout defaults to zero (don't timeout)
-        void reconnect(const ros::Duration& timeout = ros::Duration(0));
+        // Attempt reconnection
+        FcCommsReturns reconnect();
 
         // Callback to update the sensors on the FC
         void updateSensors(const ros::TimerEvent&);
@@ -232,18 +231,17 @@ FcCommsReturns CommonFcComms<T>::publishTopics()
 
 // Attempt to reconnect, blocking until successful
 template<class T>
-void CommonFcComms<T>::reconnect(const ros::Duration& timeout) {
+FcCommsReturns CommonFcComms<T>::reconnect() {
     FcCommsReturns status;
     ros::Time start_time = ros::Time::now();
-    do {
-        status = flightControlImpl_.disconnect();
-    } while (status != FcCommsReturns::kReturnOk
-          && (timeout == ros::Duration(0) || ros::Time::now() - start_time < timeout));
 
-    do {
+    status = flightControlImpl_.disconnect();
+    if(status == FcCommsReturns::kReturnOk)
+    {
         status = flightControlImpl_.connect();
-    } while (status != FcCommsReturns::kReturnOk
-          && (timeout == ros::Duration(0) || ros::Time::now() - start_time < timeout));
+    }
+
+    return status;
 }
 
 // Update the sensors on the flight controller
