@@ -26,7 +26,7 @@ namespace FcComms
     {
     public:
         MspFcComms();
-        ~MspFcComms();
+        ~MspFcComms() = default;
 
         // Used to find and connect to the serial port
         FcCommsReturns __attribute__((warn_unused_result))
@@ -109,7 +109,7 @@ namespace FcComms
                 uint8_t (&response)[FcCommsMspConf::kMspMaxDataLength]);
 
         // Serial object used to communicate with FC
-        serial::Serial* fc_serial_;
+        std::unique_ptr<serial::Serial> fc_serial_;
 
         // State of communication with flight controller
         FcCommsStatus fc_comms_status_ = FcCommsStatus::kDisconnected;
