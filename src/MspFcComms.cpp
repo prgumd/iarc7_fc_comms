@@ -22,14 +22,9 @@
 
 namespace FcComms {
 
-MspFcComms::MspFcComms() : fc_serial_(nullptr)
+MspFcComms::MspFcComms() : fc_serial_()
 {
     // Empty, nothing to do for now.
-}
-
-MspFcComms::~MspFcComms()
-{
-    delete fc_serial_;
 }
 
 FcCommsReturns MspFcComms::safetyLand()
@@ -240,6 +235,8 @@ FcCommsReturns MspFcComms::disconnect()
             return FcCommsReturns::kReturnError;
     }
 
+    ROS_INFO("Succesfull disconnection from FC");
+
     fc_comms_status_ = FcCommsStatus::kDisconnected;
     return FcCommsReturns::kReturnOk;
 }
@@ -261,15 +258,9 @@ FcCommsReturns MspFcComms::connect()
             return FcCommsReturns::kReturnError;
         }
 
-        // If connect is being called again be sure to free memory.
-        if(fc_serial_ != nullptr)
-        {
-            delete fc_serial_;
-        }
-
         // Make a serial port object
-        fc_serial_ = new serial::Serial(serial_port, FcCommsMspConf::kBaudRate,
-                                        serial::Timeout::simpleTimeout(FcCommsMspConf::kSerialTimeoutMs));
+        fc_serial_.reset(new serial::Serial(serial_port, FcCommsMspConf::kBaudRate,
+                                        serial::Timeout::simpleTimeout(FcCommsMspConf::kSerialTimeoutMs)));
 
         // Wait for the serial port to be open.
         if(fc_serial_->isOpen() == false)
