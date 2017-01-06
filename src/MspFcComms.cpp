@@ -38,22 +38,29 @@ FcCommsReturns MspFcComms::safetyLand()
     // This effectively limits the max throttle in FcCommsMspconf::kSafetyLandingThrottle
     // to CommonConf::kMaxAllowedThrottle since translated_rc_values_[2] can't be set higher
     // than CommonConf::kMaxAllowedThrottle
-    
+
     double current_throttle = (double(translated_rc_values_[2]) - FcCommsMspConf::kMspThrottleStartPoint)
                             / FcCommsMspConf::kMspThrottleScale;
 
-    double constrained_throttle = std::max(double(CommonConf::kMinAllowedThrottle),
-                                           std::min(current_throttle,
-                                                    double(FcCommsMspConf::kSafetyLandingThrottle)));
+    double throttle_output;
 
-    double throttle_output = constrained_throttle * FcCommsMspConf::kMspThrottleScale
-                           + FcCommsMspConf::kMspThrottleStartPoint; 
+    if (current_throttle < CommonConf::kMinAllowedThrottle + 0.01)
+    {
+        throttle_output = CommonConf::kMinAllowedThrottle;
+    }
+    else
+    {
+        throttle_output = FcCommsMspConf::kSafetyLandingThrottle;
+    }
+
+    double rc_output = throttle_output * FcCommsMspConf::kMspThrottleScale
+                     + FcCommsMspConf::kMspThrottleStartPoint;
 
     translated_rc_values_[0] = 0.0;
     translated_rc_values_[1] = 0.0;
-    translated_rc_values_[2] = static_cast<uint16_t>(throttle_output);
+    translated_rc_values_[2] = static_cast<uint16_t>(rc_output);
     translated_rc_values_[3] = 0.0;
-    
+
     return sendRc();
 }
 
