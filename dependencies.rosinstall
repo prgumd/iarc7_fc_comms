@@ -4,4 +4,6 @@
 - git:
     local-name: serial
     uri: https://github.com/wjwwood/serial.git
-
+- git:
+    local-name: iarc7_safety
+    uri: https://github.com/Pitt-RAS/iarc7_safety.git
