@@ -269,9 +269,6 @@ FcCommsReturns MspFcComms::connect()
         ROS_INFO("FC_Comms Connected to FC");
         fc_comms_status_ = FcCommsStatus::kConnected;
 
-        // Pause to allow the flight controller to come up
-        ros::Duration(2.0).sleep();
-
         return FcCommsReturns::kReturnOk;
     }
     // Catch if there is an error making the connection.
