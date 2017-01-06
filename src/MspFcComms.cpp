@@ -32,6 +32,24 @@ MspFcComms::~MspFcComms()
     delete fc_serial_;
 }
 
+FcCommsReturns MspFcComms::safetyLand()
+{
+    // Do not set the throttle higher than it was before
+    // This effectively limits the max throttle in FcCommsMspconf::kSafetyLandingThrottle
+    // to CommonConf::kMaxAllowedThrottle since translated_rc_values_[2] can't be set higher
+    // than CommonConf::kMaxAllowedThrottle
+    double constrained_throttle = std::max(double(CommonConf::kMinAllowedThrottle),
+                                           std::min(double(translated_rc_values_[2]),
+                                                    double(FcCommsMspConf::kSafetyLandingThrottle)));
+
+    translated_rc_values_[0] = 0.0;
+    translated_rc_values_[1] = 0.0;
+    translated_rc_values_[2] = constrained_throttle;
+    translated_rc_values_[3] = 0.0;
+    
+    return sendRc();
+}
+
 // Scale the direction commands to rc values and put them in the rc values array.
 // Send the rc values
 FcCommsReturns MspFcComms::processDirectionCommandMessage(

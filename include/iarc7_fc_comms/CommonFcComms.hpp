@@ -287,17 +287,12 @@ void CommonFcComms<T>::updateDirection()
 template<class T>
 void CommonFcComms<T>::activateFcSafety()
 {
-    // Override whatever commands are available and attempt to land
-    iarc7_msgs::OrientationThrottleStamped land_command;
-    land_command.throttle = CommonConf::kSafetyLandingThrottle;
-
-    FcCommsReturns status = flightControlImpl_.processDirectionCommandMessage(
-        static_cast<iarc7_msgs::OrientationThrottleStamped::ConstPtr>(&land_command));
+    FcCommsReturns status = flightControlImpl_.safetyLand();
     
     if (status == FcCommsReturns::kReturnOk) {
-        ROS_WARN("iarc7_fc_comms: sent safety landing command");
+        ROS_WARN("iarc7_fc_comms: succesfully sent safety land request");
     } else {
-        ROS_ERROR("iarc7_fc_comms: failed sending safety landing command");
+        ROS_ERROR("iarc7_fc_comms: failed to send safety land request");
     }
 }
 
