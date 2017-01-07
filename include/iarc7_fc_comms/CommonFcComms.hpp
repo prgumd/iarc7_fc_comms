@@ -52,7 +52,7 @@ namespace FcComms{
         void reconnect();
 
         // Update information from flight controller and send information
-        void update(const ros::TimerEvent&);
+        void update();
 
         // Update flight controller status information
         void updateFcStatus();
@@ -188,14 +188,15 @@ FcCommsReturns CommonFcComms<T>::init()
 template<class T>
 FcCommsReturns CommonFcComms<T>::run()
 {
-    // Set up a timer to call update
-    ros::Timer timer = nh_.createTimer(
-            ros::Duration(CommonConf::kFcSensorsUpdatePeriod),
-            &CommonFcComms::update,
-            this);
 
-    // Wait till we get told to stop and service all callbacks
-    ros::spin();
+    ros::Rate rate(CommonConf::kFcSensorsUpdateRateHz);
+
+    while(ros::ok())
+    {
+        update();
+        ros::spinOnce();
+        rate.sleep();
+    }
 
     // Disconnect from FC.
     return flightControlImpl_.disconnect();
@@ -328,7 +329,7 @@ void CommonFcComms<T>::reconnect() {
 
 // Update information from flight controller and send information
 template<class T>
-void CommonFcComms<T>::update(const ros::TimerEvent&)
+void CommonFcComms<T>::update()
 {
     ros::Time times = ros::Time::now();
 
