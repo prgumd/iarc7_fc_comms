@@ -213,12 +213,15 @@ void CommonFcComms<T>::updateFcStatus()
     if (status != FcCommsReturns::kReturnOk) {
         ROS_ERROR("Failed to retrieve flight controller status");
     }
-    fc.armed = temp_armed;
-    fc.auto_pilot = temp_auto_pilot;
-    fc.failsafe = temp_failsafe;
-    ROS_DEBUG("Autopilot_enabled: %d", fc.auto_pilot);
-    ROS_DEBUG("Armed: %d", fc.armed);
-    status_publisher.publish(fc);
+    else
+    {
+        fc.armed = temp_armed;
+        fc.auto_pilot = temp_auto_pilot;
+        fc.failsafe = temp_failsafe;
+        ROS_DEBUG("Autopilot_enabled: %d", fc.auto_pilot);
+        ROS_DEBUG("Armed: %d", fc.armed);
+        status_publisher.publish(fc);
+    }
 }
 
 // Update flight controller sensor information
@@ -230,17 +233,22 @@ void CommonFcComms<T>::updateSensors()
     if (status != FcCommsReturns::kReturnOk) {
         ROS_ERROR("iarc7_fc_comms: Failed to retrieve flight controller battery info");
     }
-    ROS_DEBUG("iarc7_fc_comms: Battery level: %f", battery.data);
-    battery_publisher.publish(battery);
+    else
+    {
+        ROS_DEBUG("iarc7_fc_comms: Battery level: %f", battery.data);
+        battery_publisher.publish(battery);
+    }
 
     double attitude[3];
     status = flightControlImpl_.getAttitude(attitude);
     if (status != FcCommsReturns::kReturnOk) {
         ROS_ERROR("iarc7_fc_comms: Failed to retrieve attitude from flight controller");
     }
-    ROS_DEBUG("iarc7_fc_comms: Attitude: %f %f %f", attitude[0], attitude[1], attitude[2]);
-    sendOrientationTransform(attitude);
-
+    else
+    {
+        ROS_DEBUG("iarc7_fc_comms: Attitude: %f %f %f", attitude[0], attitude[1], attitude[2]);
+        sendOrientationTransform(attitude);
+    }
 }
 
 // Send arm message to flight controller
