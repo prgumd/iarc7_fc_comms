@@ -54,8 +54,11 @@ namespace FcComms{
         // Update information from flight controller and send information
         void update();
 
-        // Update flight controller status information
-        void updateFcStatus();
+        // Update flight controller armed information
+        void updateArmed();
+
+        // Update flight controller auto pilot enabled information
+        void updateAutoPilotEnabled();
 
         // Update flight controller battery information
         void updateBattery();
@@ -114,7 +117,8 @@ namespace FcComms{
 
         typedef void (CommonFcComms::*CommonFcCommsMemFn)();
 
-        CommonFcCommsMemFn sequenced_updates[2] = {&CommonFcComms::updateFcStatus,
+        CommonFcCommsMemFn sequenced_updates[3] = {&CommonFcComms::updateArmed,
+                                                   &CommonFcComms::updateAutoPilotEnabled,
                                                    &CommonFcComms::updateBattery
                                                   };
 
@@ -213,26 +217,33 @@ FcCommsReturns CommonFcComms<T>::run()
     return flightControlImpl_.disconnect();
 }
 
-// Update flight controller status information
+// Update flight controller arming information
 template<class T>
-void CommonFcComms<T>::updateFcStatus()
+void CommonFcComms<T>::updateArmed()
 {
-    iarc7_msgs::FlightControllerStatus fc;
     bool temp_armed;
-    bool temp_auto_pilot;
-    bool temp_failsafe;
-    FcCommsReturns status = flightControlImpl_.getStatus(temp_armed, temp_auto_pilot, temp_failsafe);
+    FcCommsReturns status = flightControlImpl_.isArmed(temp_armed);
     if (status != FcCommsReturns::kReturnOk) {
         ROS_ERROR("Failed to retrieve flight controller status");
     }
     else
     {
-        fc.armed = temp_armed;
-        fc.auto_pilot = temp_auto_pilot;
-        fc.failsafe = temp_failsafe;
-        ROS_DEBUG("Autopilot_enabled: %d", fc.auto_pilot);
-        ROS_DEBUG("Armed: %d", fc.armed);
-        status_publisher.publish(fc);
+        ROS_DEBUG("Armed: %d", temp_armed);
+    }
+}
+
+// Update flight controller auto pilot status information
+template<class T>
+void CommonFcComms<T>::updateAutoPilotEnabled()
+{
+    bool temp_auto_pilot;
+    FcCommsReturns status = flightControlImpl_.isAutoPilotAllowed(temp_auto_pilot);
+    if (status != FcCommsReturns::kReturnOk) {
+        ROS_ERROR("Failed to retrieve flight controller status");
+    }
+    else
+    {
+        ROS_DEBUG("Autopilot_enabled: %d", temp_auto_pilot);
     }
 }
 
