@@ -57,14 +57,14 @@ namespace FcComms{
         // Update flight controller status information
         void updateFcStatus();
 
-        // Update flight controller status information
-        void updateSensors();
+        // Update flight controller battery information
+        void updateBattery();
 
-        // Send arm message to flight controller
-        void updateArm();
+        // Update flight controller attitude information
+        void updateAttitude();
 
-        // Send direction message to flight controller
-        void updateDirection();
+        // Send arm or direction message to flight controller
+        void updateArmDirection();
 
         // Activate the safety response of the flight controller impl
         void activateFcSafety();
@@ -111,6 +111,16 @@ namespace FcComms{
 
         bool have_new_direction_command_message_ = false;
         bool have_new_arm_message_ = false;
+
+        typedef void (CommonFcComms::*CommonFcCommsMemFn)();
+
+        CommonFcCommsMemFn sequenced_updates[2] = {&CommonFcComms::updateFcStatus,
+                                                   &CommonFcComms::updateBattery
+                                                  };
+
+        uint32_t num_sequenced_updates = sizeof(sequenced_updates) / sizeof(CommonFcCommsMemFn);
+
+        uint32_t current_sequenced_update = 0;
     };
 }
 
@@ -129,7 +139,8 @@ uav_arm_subscriber(),
 last_direction_command_message_ptr_(),
 last_arm_message_ptr_()
 {
-
+    //sequenced_updates[0] = this->updateFcStatus;
+    //sequenced_updates[1] = this->updateFcStatus;
 }
 
 template<class T>
@@ -225,9 +236,9 @@ void CommonFcComms<T>::updateFcStatus()
     }
 }
 
-// Update flight controller sensor information
+// Update flight controller battery information
 template<class T>
-void CommonFcComms<T>::updateSensors()
+void CommonFcComms<T>::updateBattery()
 {
     std_msgs::Float32 battery;
     FcCommsReturns status = flightControlImpl_.getBattery(battery.data);
@@ -239,9 +250,14 @@ void CommonFcComms<T>::updateSensors()
         ROS_DEBUG("iarc7_fc_comms: Battery level: %f", battery.data);
         battery_publisher.publish(battery);
     }
+}
 
+// Update flight controller attitude information
+template<class T>
+void CommonFcComms<T>::updateAttitude()
+{
     double attitude[3];
-    status = flightControlImpl_.getAttitude(attitude);
+    FcCommsReturns status = flightControlImpl_.getAttitude(attitude);
     if (status != FcCommsReturns::kReturnOk) {
         ROS_ERROR("iarc7_fc_comms: Failed to retrieve attitude from flight controller");
     }
@@ -252,13 +268,15 @@ void CommonFcComms<T>::updateSensors()
     }
 }
 
-// Send arm message to flight controller
+// Send arm and direction message to flight controller
 template<class T>
-void CommonFcComms<T>::updateArm()
+void CommonFcComms<T>::updateArmDirection()
 {
+    FcCommsReturns status{FcCommsReturns::kReturnOk};
+
     if(have_new_arm_message_)
     {
-        FcCommsReturns status = flightControlImpl_.processArmMessage(
+        status = flightControlImpl_.processArmMessage(
                      last_arm_message_ptr_);
         if (status == FcCommsReturns::kReturnOk)
         {
@@ -269,13 +287,6 @@ void CommonFcComms<T>::updateArm()
             ROS_ERROR("iarc7_fc_comms: Failed to send arm message");
         }
     }
-}
-
-// Send direction message to flight controller
-template<class T>
-void CommonFcComms<T>::updateDirection()
-{
-    FcCommsReturns status{FcCommsReturns::kReturnOk};
 
     if(have_new_direction_command_message_)
     {
@@ -360,12 +371,12 @@ void CommonFcComms<T>::update()
             }
             else
             {
-                updateArm();
-                updateDirection();
+                updateArmDirection();
+                updateAttitude();
             }
 
-            updateFcStatus();
-            updateSensors();
+            (this->*sequenced_updates[current_sequenced_update])();
+            current_sequenced_update = (current_sequenced_update + 1) % num_sequenced_updates;
 
             ROS_DEBUG("iarc7_fc_comms: Time to update FC sensors: %f", (ros::Time::now() - times).toSec());
             break;
