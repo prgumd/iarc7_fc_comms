@@ -239,6 +239,7 @@ bool CommonFcComms<T>::uavArmServiceHandler(
     // If auto pilot is not enabled we have no power
     if(!auto_pilot)
     {
+        ROS_INFO("Failed to arm or disarm the FC: auto pilot is disabled");
         response.success = false;
         response.message = "disabled";
         return true;
@@ -263,15 +264,15 @@ bool CommonFcComms<T>::uavArmServiceHandler(
             return false;
         }
 
-        if(armed)
+        if(armed == request.data)
         {
-            ROS_INFO("FC is armed");
+            ROS_INFO("FC arm or disarm set succesfully");
             response.success = true;
             return true;
         }
     }
 
-    ROS_INFO("Failed to arm FC");
+    ROS_INFO("Failed to arm or disarm the FC: timeout out");
     response.success = false;
     response.message = "timed out";
     return true;
