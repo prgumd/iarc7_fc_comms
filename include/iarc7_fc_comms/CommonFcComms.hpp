@@ -58,6 +58,9 @@ namespace FcComms{
         // Update flight controller armed information
         void updateArmed();
 
+        // Update flight controller auto pilot status information
+        void updateAutoPilotEnabled();
+
         // Update flight controller battery information
         void updateBattery();
 
@@ -114,7 +117,8 @@ namespace FcComms{
 
         typedef void (CommonFcComms::*CommonFcCommsMemFn)();
 
-        CommonFcCommsMemFn sequenced_updates[2] = {&CommonFcComms::updateArmed,
+        CommonFcCommsMemFn sequenced_updates[3] = {&CommonFcComms::updateArmed,
+                                                   &CommonFcComms::updateAutoPilotEnabled,
                                                    &CommonFcComms::updateBattery
                                                   };
 
@@ -125,6 +129,8 @@ namespace FcComms{
         bool fc_armed_ = false;
 
         bool fc_failsafe_ = false;
+
+        bool fc_auto_pilot_enabled_ = false;
     };
 }
 
@@ -287,6 +293,22 @@ void CommonFcComms<T>::updateArmed()
     }
 }
 
+// Update flight controller auto pilot status information
+template<class T>
+void CommonFcComms<T>::updateAutoPilotEnabled()
+{
+    bool temp_auto_pilot;
+    FcCommsReturns status = flightControlImpl_.isAutoPilotAllowed(temp_auto_pilot);
+    if (status != FcCommsReturns::kReturnOk) {
+        ROS_ERROR("Failed to find out if auto pilot is enabled");
+    }
+    else
+    {
+        ROS_DEBUG("Autopilot_enabled: %d", temp_auto_pilot);
+        fc_auto_pilot_enabled_ = temp_auto_pilot;
+    }
+}
+
 // Update flight controller battery information
 template<class T>
 void CommonFcComms<T>::updateBattery()
@@ -434,6 +456,7 @@ void CommonFcComms<T>::publishFcStatus()
     iarc7_msgs::FlightControllerStatus status_message;
 
     status_message.armed = fc_armed_;
+    status_message.auto_pilot = fc_auto_pilot_enabled_;
     status_message.failsafe = fc_failsafe_;
 
     status_publisher.publish(status_message);
