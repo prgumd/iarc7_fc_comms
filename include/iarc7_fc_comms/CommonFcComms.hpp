@@ -218,10 +218,12 @@ bool CommonFcComms<T>::uavArmServiceHandler(
                 std_srvs::SetBool::Request& request,
                 std_srvs::SetBool::Response& response)
 {
+    ROS_INFO("Uav arm service handler called");
+
     bool auto_pilot;
     FcCommsReturns status = flightControlImpl_.isAutoPilotAllowed(auto_pilot);
     if (status != FcCommsReturns::kReturnOk) {
-        ROS_ERROR("Failed to find out if auto pilot is enabled when arming");
+        ROS_ERROR("Failed to find out if auto pilot is enabled");
         return false;
     }
 
@@ -229,6 +231,7 @@ bool CommonFcComms<T>::uavArmServiceHandler(
     if(!auto_pilot)
     {
         response.success = false;
+        response.message = "disabled";
         return true;
     }
 
@@ -240,7 +243,28 @@ bool CommonFcComms<T>::uavArmServiceHandler(
         return false;
     }
 
-    response.success = true;
+    // Check to see if the craft actually armed
+    ros::Time start_time = ros::Time::now();
+    while((ros::Time::now() - start_time) < ros::Duration(CommonConf::kMaxArmDelay))
+    {
+        bool armed;
+        FcCommsReturns status = flightControlImpl_.isArmed(armed);
+        if (status != FcCommsReturns::kReturnOk) {
+            ROS_ERROR("Failed to retrieve flight controller arm status");
+            return false;
+        }
+
+        if(armed)
+        {
+            ROS_INFO("FC is armed");
+            response.success = true;
+            return true;
+        }
+    }
+
+    ROS_INFO("Failed to arm FC");
+    response.success = false;
+    response.message = "timed out";
     return true;
 }
 

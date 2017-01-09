@@ -29,6 +29,10 @@ struct CommonConf
 {
     static constexpr const float kFcSensorsUpdateRateHz{30};
 
+    // This needs to take less time than the monitor bonds need to update
+    // since they will break if this is too long and arming fails.
+    static constexpr const double kMaxArmDelay{0.2};
+
     static constexpr const double kMinAllowedRoll = -0.25;
     static constexpr const double kMaxAllowedRoll = 0.25;
     static constexpr const double kMinAllowedPitch = -0.25;
