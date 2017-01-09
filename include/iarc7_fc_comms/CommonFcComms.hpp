@@ -58,9 +58,6 @@ namespace FcComms{
         // Update flight controller armed information
         void updateArmed();
 
-        // Update flight controller auto pilot enabled information
-        void updateAutoPilotEnabled();
-
         // Update flight controller battery information
         void updateBattery();
 
@@ -68,10 +65,13 @@ namespace FcComms{
         void updateAttitude();
 
         // Send arm or direction message to flight controller
-        void updateArmDirection();
+        void updateDirection();
 
         // Activate the safety response of the flight controller impl
         void activateFcSafety();
+
+        // Publish the flight controller status
+        void publishFcStatus();
 
         // Send out the transform for the level_quad to quad
         void sendOrientationTransform(double (&attitude)[3]);
@@ -114,14 +114,17 @@ namespace FcComms{
 
         typedef void (CommonFcComms::*CommonFcCommsMemFn)();
 
-        CommonFcCommsMemFn sequenced_updates[3] = {&CommonFcComms::updateArmed,
-                                                   &CommonFcComms::updateAutoPilotEnabled,
+        CommonFcCommsMemFn sequenced_updates[2] = {&CommonFcComms::updateArmed,
                                                    &CommonFcComms::updateBattery
                                                   };
 
         uint32_t num_sequenced_updates = sizeof(sequenced_updates) / sizeof(CommonFcCommsMemFn);
 
         uint32_t current_sequenced_update = 0;
+
+        bool fc_armed_ = false;
+
+        bool fc_failsafe_ = false;
     };
 }
 
@@ -280,21 +283,7 @@ void CommonFcComms<T>::updateArmed()
     else
     {
         ROS_DEBUG("Armed: %d", temp_armed);
-    }
-}
-
-// Update flight controller auto pilot status information
-template<class T>
-void CommonFcComms<T>::updateAutoPilotEnabled()
-{
-    bool temp_auto_pilot;
-    FcCommsReturns status = flightControlImpl_.isAutoPilotAllowed(temp_auto_pilot);
-    if (status != FcCommsReturns::kReturnOk) {
-        ROS_ERROR("Failed to find out if auto pilot is enabled");
-    }
-    else
-    {
-        ROS_DEBUG("Autopilot_enabled: %d", temp_auto_pilot);
+        fc_armed_ = temp_armed;
     }
 }
 
@@ -419,9 +408,11 @@ void CommonFcComms<T>::update()
             }
             else
             {
-                updateArmDirection();
+                updateDirection();
                 updateAttitude();
             }
+
+            publishFcStatus();
 
             (this->*sequenced_updates[current_sequenced_update])();
             current_sequenced_update = (current_sequenced_update + 1) % num_sequenced_updates;
@@ -435,6 +426,17 @@ void CommonFcComms<T>::update()
         default:
             ROS_ASSERT_MSG(false, "iarc7_fc_comms: FC_Comms has undefined state.");
     }
+}
+
+template<class T>
+void CommonFcComms<T>::publishFcStatus()
+{
+    iarc7_msgs::FlightControllerStatus status_publisher
+
+    status_publisher.armed = fc_armed_;
+    status_publisher.failsafe = fc_failsafe_;
+
+    status_publisher.publish(status_publisher);
 }
 
 // Send out the transform for the level_quad to quad
