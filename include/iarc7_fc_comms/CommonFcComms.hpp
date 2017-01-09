@@ -321,7 +321,7 @@ void CommonFcComms<T>::updateAttitude()
 
 // Send arm and direction message to flight controller
 template<class T>
-void CommonFcComms<T>::updateArmDirection()
+void CommonFcComms<T>::updateDirection()
 {
     FcCommsReturns status{FcCommsReturns::kReturnOk};
 
@@ -431,12 +431,12 @@ void CommonFcComms<T>::update()
 template<class T>
 void CommonFcComms<T>::publishFcStatus()
 {
-    iarc7_msgs::FlightControllerStatus status_publisher
+    iarc7_msgs::FlightControllerStatus status_message;
 
-    status_publisher.armed = fc_armed_;
-    status_publisher.failsafe = fc_failsafe_;
+    status_message.armed = fc_armed_;
+    status_message.failsafe = fc_failsafe_;
 
-    status_publisher.publish(status_publisher);
+    status_publisher.publish(status_message);
 }
 
 // Send out the transform for the level_quad to quad
