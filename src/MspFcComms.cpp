@@ -96,11 +96,10 @@ FcCommsReturns MspFcComms::processDirectionCommandMessage(
     return sendRc();
 }
 
-FcCommsReturns MspFcComms::processArmMessage(
-      const iarc7_msgs::BoolStamped::ConstPtr& message)
+FcCommsReturns MspFcComms::setArm(bool arm)
 {
     // Try to arm, Values over 1800 arm the FC
-    translated_rc_values_[4] = (message->data == true) ? 2000 : 1000;
+    translated_rc_values_[4] = (arm == true) ? 2000 : 1000;
     return sendRc();
 }
 

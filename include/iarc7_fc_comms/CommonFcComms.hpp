@@ -20,6 +20,7 @@
 #include "iarc7_msgs/Float64Stamped.h"
 #include "iarc7_msgs/OrientationThrottleStamped.h"
 #include "std_msgs/Float32.h"
+#include "std_srvs/SetBool.h"
 
 
 //mspfccomms actually handles the serial communication
@@ -81,11 +82,9 @@ namespace FcComms{
             have_new_direction_command_message_ = true;
         }
 
-        inline void uavArmMessageHandler(
-                const iarc7_msgs::BoolStamped::ConstPtr& message) {
-            last_arm_message_ptr_ = message;
-            have_new_arm_message_ = true;
-        }
+        bool uavArmServiceHandler(
+                std_srvs::SetBool::Request& request,
+                std_srvs::SetBool::Response& response);
 
         // This node's handle
         ros::NodeHandle nh_;
@@ -106,14 +105,12 @@ namespace FcComms{
         // Subscriber for uav_throttle valuess
         ros::Subscriber uav_throttle_subscriber;
 
-        // Subscriber for uav_arm
-        ros::Subscriber uav_arm_subscriber;
+        // Service to arm copter
+        ros::ServiceServer uav_arm_service;
 
         iarc7_msgs::OrientationThrottleStamped::ConstPtr last_direction_command_message_ptr_;
-        iarc7_msgs::BoolStamped::ConstPtr last_arm_message_ptr_;
 
         bool have_new_direction_command_message_ = false;
-        bool have_new_arm_message_ = false;
 
         typedef void (CommonFcComms::*CommonFcCommsMemFn)();
 
@@ -139,9 +136,8 @@ status_publisher(),
 flightControlImpl_(),
 uav_angle_subscriber(),
 uav_throttle_subscriber(),
-uav_arm_subscriber(),
-last_direction_command_message_ptr_(),
-last_arm_message_ptr_()
+uav_arm_service(),
+last_direction_command_message_ptr_()
 {
     //sequenced_updates[0] = this->updateFcStatus;
     //sequenced_updates[1] = this->updateFcStatus;
@@ -186,12 +182,11 @@ FcCommsReturns CommonFcComms<T>::init()
         return FcCommsReturns::kReturnError;
     }
 
-    uav_arm_subscriber = nh_.subscribe("uav_arm",
-                                       100,
-                                       &CommonFcComms::uavArmMessageHandler,
+    uav_arm_service = nh_.advertiseService("uav_arm",
+                                       &CommonFcComms::uavArmServiceHandler,
                                        this);
-    if (!uav_arm_subscriber) {
-        ROS_ERROR("CommonFcComms failed to create arm subscriber");
+    if (!uav_arm_service) {
+        ROS_ERROR("CommonFcComms failed to create arming service");
         return FcCommsReturns::kReturnError;
     }
 
@@ -217,6 +212,38 @@ FcCommsReturns CommonFcComms<T>::run()
     return flightControlImpl_.disconnect();
 }
 
+// Attempt to arm the flight controller
+template<class T>
+bool CommonFcComms<T>::uavArmServiceHandler(
+                std_srvs::SetBool::Request& request,
+                std_srvs::SetBool::Response& response)
+{
+    bool auto_pilot;
+    FcCommsReturns status = flightControlImpl_.isAutoPilotAllowed(auto_pilot);
+    if (status != FcCommsReturns::kReturnOk) {
+        ROS_ERROR("Failed to find out if auto pilot is enabled when arming");
+        return false;
+    }
+
+    // If auto pilot is not enabled we have no power
+    if(!auto_pilot)
+    {
+        response.success = false;
+        return true;
+    }
+
+    // Now attempt to arm or disarm
+    status = flightControlImpl_.setArm(request.data);
+    if (status != FcCommsReturns::kReturnOk)
+    {
+        ROS_ERROR("iarc7_fc_comms: Failed to send arm message");
+        return false;
+    }
+
+    response.success = true;
+    return true;
+}
+
 // Update flight controller arming information
 template<class T>
 void CommonFcComms<T>::updateArmed()
@@ -239,7 +266,7 @@ void CommonFcComms<T>::updateAutoPilotEnabled()
     bool temp_auto_pilot;
     FcCommsReturns status = flightControlImpl_.isAutoPilotAllowed(temp_auto_pilot);
     if (status != FcCommsReturns::kReturnOk) {
-        ROS_ERROR("Failed to retrieve flight controller status");
+        ROS_ERROR("Failed to find out if auto pilot is enabled");
     }
     else
     {
@@ -284,20 +311,6 @@ template<class T>
 void CommonFcComms<T>::updateArmDirection()
 {
     FcCommsReturns status{FcCommsReturns::kReturnOk};
-
-    if(have_new_arm_message_)
-    {
-        status = flightControlImpl_.processArmMessage(
-                     last_arm_message_ptr_);
-        if (status == FcCommsReturns::kReturnOk)
-        {
-            have_new_arm_message_ = false;
-        }
-        else
-        {
-            ROS_ERROR("iarc7_fc_comms: Failed to send arm message");
-        }
-    }
 
     if(have_new_direction_command_message_)
     {

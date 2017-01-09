@@ -71,8 +71,7 @@ namespace FcComms
             processDirectionCommandMessage(
                 const iarc7_msgs::OrientationThrottleStamped::ConstPtr& message);
         FcCommsReturns  __attribute__((warn_unused_result))
-            processArmMessage(
-                const iarc7_msgs::BoolStamped::ConstPtr& message);
+            setArm(bool arm);
 
         FcCommsReturns  __attribute__((warn_unused_result))
             printRawRC();
