@@ -48,10 +48,6 @@ namespace FcComms
         FcCommsReturns  __attribute__((warn_unused_result))
             isFailsafe(bool& failsafe);
 
-        // Find out if the FC has enabled auto_pilot
-        FcCommsReturns  __attribute__((warn_unused_result))
-            isAutoEnabled(bool& auto_pilot);
-
         // Get the battery voltage of the FC.
         FcCommsReturns  __attribute__((warn_unused_result))
             getBattery(float& voltage);

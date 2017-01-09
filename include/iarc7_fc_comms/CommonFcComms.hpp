@@ -148,8 +148,7 @@ uav_throttle_subscriber(),
 uav_arm_service(),
 last_direction_command_message_ptr_()
 {
-    //sequenced_updates[0] = this->updateFcStatus;
-    //sequenced_updates[1] = this->updateFcStatus;
+
 }
 
 template<class T>
@@ -261,7 +260,6 @@ bool CommonFcComms<T>::uavArmServiceHandler(
         FcCommsReturns status = flightControlImpl_.isArmed(armed);
         if (status != FcCommsReturns::kReturnOk) {
             ROS_ERROR("Failed to retrieve flight controller arm status");
-            return false;
         }
 
         if(armed == request.data)
