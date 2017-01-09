@@ -341,7 +341,7 @@ void CommonFcComms<T>::updateAttitude()
     }
 }
 
-// Send arm and direction message to flight controller
+// Send direction message to flight controller
 template<class T>
 void CommonFcComms<T>::updateDirection()
 {
@@ -434,10 +434,10 @@ void CommonFcComms<T>::update()
                 updateAttitude();
             }
 
-            publishFcStatus();
-
             (this->*sequenced_updates[current_sequenced_update])();
             current_sequenced_update = (current_sequenced_update + 1) % num_sequenced_updates;
+
+            publishFcStatus();
 
             ROS_DEBUG("iarc7_fc_comms: Time to update FC sensors: %f", (ros::Time::now() - times).toSec());
             break;
