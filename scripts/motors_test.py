@@ -70,7 +70,6 @@ if __name__ == '__main__':
 
             arm = BoolStamped()
             arm.data = True
-            arm_pub.publish(arm)
 
         rate.sleep()
 
