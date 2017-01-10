@@ -23,7 +23,6 @@ if __name__ == '__main__':
     safety_client.form_bond()
 
     command_pub = rospy.Publisher('uav_direction_command', OrientationThrottleStamped, queue_size=0)
-    arm_pub = rospy.Publisher('uav_arm', BoolStamped, queue_size=0)
 
     armed = False
     while armed == False :
