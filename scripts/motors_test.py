@@ -9,22 +9,29 @@ from iarc7_safety.SafetyClient import SafetyClient
 from iarc7_msgs.msg import OrientationThrottleStamped
 from iarc7_msgs.msg import BoolStamped
 
+from std_srvs.srv import SetBool
+
 from geometry_msgs.msg import TwistStamped
-
-
-def constrain(x, l, h):
-    return min(h, max(x, l))
 
 if __name__ == '__main__':
     rospy.init_node('waypoints_test', anonymous=True)
+
+    rospy.wait_for_service('uav_arm')
+    arm_service = rospy.ServiceProxy('uav_arm', SetBool)
 
     safety_client = SafetyClient('motors_test')
     safety_client.form_bond()
 
     command_pub = rospy.Publisher('uav_direction_command', OrientationThrottleStamped, queue_size=0)
-    arm_pub = rospy.Publisher('uav_arm', BoolStamped, queue_size=0)
 
-    rate = rospy.Rate(10)
+    armed = False
+    while armed == False :
+        try:
+            armed = arm_service(True)
+        except rospy.ServiceException as exc:
+            print("Could not arm: " + str(exc))
+
+    rate = rospy.Rate(30)
     throttle = 0
     while not rospy.is_shutdown():
 

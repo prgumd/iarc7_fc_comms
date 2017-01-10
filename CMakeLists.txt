@@ -8,6 +8,8 @@ set(CMAKE_CXX_FLAGS "-Wall -Wextra -Werror ${CMAKE_CXX_FLAGS}")
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   iarc7_msgs
+  std_msgs
+  std_srvs
   roscpp
   message_generation
   serial

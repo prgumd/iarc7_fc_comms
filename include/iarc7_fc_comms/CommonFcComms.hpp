@@ -20,6 +20,7 @@
 #include "iarc7_msgs/Float64Stamped.h"
 #include "iarc7_msgs/OrientationThrottleStamped.h"
 #include "std_msgs/Float32.h"
+#include "std_srvs/SetBool.h"
 
 
 //mspfccomms actually handles the serial communication
@@ -54,20 +55,26 @@ namespace FcComms{
         // Update information from flight controller and send information
         void update();
 
-        // Update flight controller status information
-        void updateFcStatus();
+        // Update flight controller armed information
+        void updateArmed();
 
-        // Update flight controller status information
-        void updateSensors();
+        // Update flight controller auto pilot status information
+        void updateAutoPilotEnabled();
 
-        // Send arm message to flight controller
-        void updateArm();
+        // Update flight controller battery information
+        void updateBattery();
 
-        // Send direction message to flight controller
+        // Update flight controller attitude information
+        void updateAttitude();
+
+        // Send arm or direction message to flight controller
         void updateDirection();
 
         // Activate the safety response of the flight controller impl
         void activateFcSafety();
+
+        // Publish the flight controller status
+        void publishFcStatus();
 
         // Send out the transform for the level_quad to quad
         void sendOrientationTransform(double (&attitude)[3]);
@@ -78,11 +85,9 @@ namespace FcComms{
             have_new_direction_command_message_ = true;
         }
 
-        inline void uavArmMessageHandler(
-                const iarc7_msgs::BoolStamped::ConstPtr& message) {
-            last_arm_message_ptr_ = message;
-            have_new_arm_message_ = true;
-        }
+        bool uavArmServiceHandler(
+                std_srvs::SetBool::Request& request,
+                std_srvs::SetBool::Response& response);
 
         // This node's handle
         ros::NodeHandle nh_;
@@ -103,14 +108,29 @@ namespace FcComms{
         // Subscriber for uav_throttle valuess
         ros::Subscriber uav_throttle_subscriber;
 
-        // Subscriber for uav_arm
-        ros::Subscriber uav_arm_subscriber;
+        // Service to arm copter
+        ros::ServiceServer uav_arm_service;
 
         iarc7_msgs::OrientationThrottleStamped::ConstPtr last_direction_command_message_ptr_;
-        iarc7_msgs::BoolStamped::ConstPtr last_arm_message_ptr_;
 
         bool have_new_direction_command_message_ = false;
-        bool have_new_arm_message_ = false;
+
+        typedef void (CommonFcComms::*CommonFcCommsMemFn)();
+
+        CommonFcCommsMemFn sequenced_updates[3] = {&CommonFcComms::updateArmed,
+                                                   &CommonFcComms::updateAutoPilotEnabled,
+                                                   &CommonFcComms::updateBattery
+                                                  };
+
+        uint32_t num_sequenced_updates = sizeof(sequenced_updates) / sizeof(CommonFcCommsMemFn);
+
+        uint32_t current_sequenced_update = 0;
+
+        bool fc_armed_ = false;
+
+        bool fc_failsafe_ = false;
+
+        bool fc_auto_pilot_enabled_ = false;
     };
 }
 
@@ -125,9 +145,8 @@ status_publisher(),
 flightControlImpl_(),
 uav_angle_subscriber(),
 uav_throttle_subscriber(),
-uav_arm_subscriber(),
-last_direction_command_message_ptr_(),
-last_arm_message_ptr_()
+uav_arm_service(),
+last_direction_command_message_ptr_()
 {
 
 }
@@ -147,6 +166,14 @@ CommonFcComms<T>& CommonFcComms<T>::getInstance()
 template<class T>
 FcCommsReturns CommonFcComms<T>::init()
 {
+    uav_arm_service = nh_.advertiseService("uav_arm",
+                                       &CommonFcComms::uavArmServiceHandler,
+                                       this);
+    if (!uav_arm_service) {
+        ROS_ERROR("CommonFcComms failed to create arming service");
+        return FcCommsReturns::kReturnError;
+    }
+
     ROS_ASSERT_MSG(safety_client_.formBond(), "fc_comms_msp: Could not form bond with safety client");
 
     battery_publisher = nh_.advertise<std_msgs::Float32>("fc_battery", 50);
@@ -168,15 +195,6 @@ FcCommsReturns CommonFcComms<T>::init()
                                          this);
     if (!uav_angle_subscriber) {
         ROS_ERROR("CommonFcComms failed to create angle subscriber");
-        return FcCommsReturns::kReturnError;
-    }
-
-    uav_arm_subscriber = nh_.subscribe("uav_arm",
-                                       100,
-                                       &CommonFcComms::uavArmMessageHandler,
-                                       this);
-    if (!uav_arm_subscriber) {
-        ROS_ERROR("CommonFcComms failed to create arm subscriber");
         return FcCommsReturns::kReturnError;
     }
 
@@ -202,32 +220,99 @@ FcCommsReturns CommonFcComms<T>::run()
     return flightControlImpl_.disconnect();
 }
 
-// Update flight controller status information
+// Attempt to arm the flight controller
 template<class T>
-void CommonFcComms<T>::updateFcStatus()
+bool CommonFcComms<T>::uavArmServiceHandler(
+                std_srvs::SetBool::Request& request,
+                std_srvs::SetBool::Response& response)
 {
-    iarc7_msgs::FlightControllerStatus fc;
+    ROS_INFO("Uav arm service handler called");
+
+    bool auto_pilot;
+    FcCommsReturns status = flightControlImpl_.isAutoPilotAllowed(auto_pilot);
+    if (status != FcCommsReturns::kReturnOk) {
+        ROS_ERROR("Failed to find out if auto pilot is enabled");
+        return false;
+    }
+
+    // If auto pilot is not enabled we have no power
+    if(!auto_pilot)
+    {
+        ROS_INFO("Failed to arm or disarm the FC: auto pilot is disabled");
+        response.success = false;
+        response.message = "disabled";
+        return true;
+    }
+
+    // Now attempt to arm or disarm
+    status = flightControlImpl_.setArm(request.data);
+    if (status != FcCommsReturns::kReturnOk)
+    {
+        ROS_ERROR("iarc7_fc_comms: Failed to send arm message");
+        return false;
+    }
+
+    // Check to see if the craft actually armed
+    ros::Time start_time = ros::Time::now();
+    while((ros::Time::now() - start_time) < ros::Duration(CommonConf::kMaxArmDelay))
+    {
+        bool armed;
+        FcCommsReturns status = flightControlImpl_.isArmed(armed);
+        if (status == FcCommsReturns::kReturnOk) {
+            if(armed == request.data)
+            {
+                ROS_INFO("FC arm or disarm set succesfully");
+                response.success = true;
+                return true;
+            }
+        }
+        else
+        {
+            ROS_ERROR("Failed to retrieve flight controller arm status");     
+        }
+    }
+
+    ROS_INFO("Failed to arm or disarm the FC: timeout out");
+    response.success = false;
+    response.message = "timed out";
+    return true;
+}
+
+// Update flight controller arming information
+template<class T>
+void CommonFcComms<T>::updateArmed()
+{
     bool temp_armed;
-    bool temp_auto_pilot;
-    bool temp_failsafe;
-    FcCommsReturns status = flightControlImpl_.getStatus(temp_armed, temp_auto_pilot, temp_failsafe);
+    FcCommsReturns status = flightControlImpl_.isArmed(temp_armed);
     if (status != FcCommsReturns::kReturnOk) {
         ROS_ERROR("Failed to retrieve flight controller status");
     }
     else
     {
-        fc.armed = temp_armed;
-        fc.auto_pilot = temp_auto_pilot;
-        fc.failsafe = temp_failsafe;
-        ROS_DEBUG("Autopilot_enabled: %d", fc.auto_pilot);
-        ROS_DEBUG("Armed: %d", fc.armed);
-        status_publisher.publish(fc);
+        ROS_DEBUG("Armed: %d", temp_armed);
+        fc_armed_ = temp_armed;
     }
 }
 
-// Update flight controller sensor information
+// Update flight controller auto pilot status information
 template<class T>
-void CommonFcComms<T>::updateSensors()
+void CommonFcComms<T>::updateAutoPilotEnabled()
+{
+    bool temp_auto_pilot;
+    FcCommsReturns status = flightControlImpl_.isAutoPilotAllowed(temp_auto_pilot);
+    if (status != FcCommsReturns::kReturnOk) {
+        ROS_ERROR("Failed to find out if auto pilot is enabled");
+    }
+    else
+    {
+        ROS_DEBUG("Autopilot_enabled: %d", temp_auto_pilot);
+        fc_auto_pilot_enabled_ = temp_auto_pilot;
+    }
+}
+
+// Update flight controller battery information
+template<class T>
+void CommonFcComms<T>::updateBattery()
 {
     std_msgs::Float32 battery;
     FcCommsReturns status = flightControlImpl_.getBattery(battery.data);
@@ -239,9 +324,14 @@ void CommonFcComms<T>::updateSensors()
         ROS_DEBUG("iarc7_fc_comms: Battery level: %f", battery.data);
         battery_publisher.publish(battery);
     }
+}
 
+// Update flight controller attitude information
+template<class T>
+void CommonFcComms<T>::updateAttitude()
+{
     double attitude[3];
-    status = flightControlImpl_.getAttitude(attitude);
+    FcCommsReturns status = flightControlImpl_.getAttitude(attitude);
     if (status != FcCommsReturns::kReturnOk) {
         ROS_ERROR("iarc7_fc_comms: Failed to retrieve attitude from flight controller");
     }
@@ -249,25 +339,6 @@ void CommonFcComms<T>::updateSensors()
     {
         ROS_DEBUG("iarc7_fc_comms: Attitude: %f %f %f", attitude[0], attitude[1], attitude[2]);
         sendOrientationTransform(attitude);
-    }
-}
-
-// Send arm message to flight controller
-template<class T>
-void CommonFcComms<T>::updateArm()
-{
-    if(have_new_arm_message_)
-    {
-        FcCommsReturns status = flightControlImpl_.processArmMessage(
-                     last_arm_message_ptr_);
-        if (status == FcCommsReturns::kReturnOk)
-        {
-            have_new_arm_message_ = false;
-        }
-        else
-        {
-            ROS_ERROR("iarc7_fc_comms: Failed to send arm message");
-        }
     }
 }
 
@@ -360,12 +431,14 @@ void CommonFcComms<T>::update()
             }
             else
             {
-                updateArm();
                 updateDirection();
+                updateAttitude();
             }
 
-            updateFcStatus();
-            updateSensors();
+            (this->*sequenced_updates[current_sequenced_update])();
+            current_sequenced_update = (current_sequenced_update + 1) % num_sequenced_updates;
+
+            publishFcStatus();
 
             ROS_DEBUG("iarc7_fc_comms: Time to update FC sensors: %f", (ros::Time::now() - times).toSec());
             break;
@@ -376,6 +449,18 @@ void CommonFcComms<T>::update()
         default:
             ROS_ASSERT_MSG(false, "iarc7_fc_comms: FC_Comms has undefined state.");
     }
+}
+
+template<class T>
+void CommonFcComms<T>::publishFcStatus()
+{
+    iarc7_msgs::FlightControllerStatus status_message;
+
+    status_message.armed = fc_armed_;
+    status_message.auto_pilot = fc_auto_pilot_enabled_;
+    status_message.failsafe = fc_failsafe_;
+
+    status_publisher.publish(status_message);
 }
 
 // Send out the transform for the level_quad to quad

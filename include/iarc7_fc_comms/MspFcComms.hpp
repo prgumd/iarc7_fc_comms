@@ -40,9 +40,13 @@ namespace FcComms
         FcCommsReturns  __attribute__((warn_unused_result))
             handleComms();
 
-        // Get the flight status of the FC.
+        // Find out if the FC is armed.
         FcCommsReturns  __attribute__((warn_unused_result))
-            getStatus(bool& armed, bool& auto_pilot, bool& failsafe);
+            isArmed(bool& armed);
+
+        // Find out if the FC is in failsafe
+        FcCommsReturns  __attribute__((warn_unused_result))
+            isFailsafe(bool& failsafe);
 
         // Get the battery voltage of the FC.
         FcCommsReturns  __attribute__((warn_unused_result))
@@ -63,8 +67,7 @@ namespace FcComms
             processDirectionCommandMessage(
                 const iarc7_msgs::OrientationThrottleStamped::ConstPtr& message);
         FcCommsReturns  __attribute__((warn_unused_result))
-            processArmMessage(
-                const iarc7_msgs::BoolStamped::ConstPtr& message);
+            setArm(bool arm);
 
         FcCommsReturns  __attribute__((warn_unused_result))
             printRawRC();
