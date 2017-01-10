@@ -258,15 +258,17 @@ bool CommonFcComms<T>::uavArmServiceHandler(
     {
         bool armed;
         FcCommsReturns status = flightControlImpl_.isArmed(armed);
-        if (status != FcCommsReturns::kReturnOk) {
-            ROS_ERROR("Failed to retrieve flight controller arm status");
+        if (status == FcCommsReturns::kReturnOk) {
+            if(armed == request.data)
+            {
+                ROS_INFO("FC arm or disarm set succesfully");
+                response.success = true;
+                return true;
+            }
         }
-
-        if(armed == request.data)
+        else
         {
-            ROS_INFO("FC arm or disarm set succesfully");
-            response.success = true;
-            return true;
+            ROS_ERROR("Failed to retrieve flight controller arm status");     
         }
     }
 
