@@ -16,6 +16,9 @@ from geometry_msgs.msg import TwistStamped
 if __name__ == '__main__':
     rospy.init_node('waypoints_test', anonymous=True)
 
+    rospy.wait_for_service('uav_arm')
+    arm_service = rospy.ServiceProxy('uav_arm', SetBool)
+
     safety_client = SafetyClient('motors_test')
     safety_client.form_bond()
 
@@ -24,7 +27,6 @@ if __name__ == '__main__':
 
     armed = False
     while armed == False :
-        arm_service = rospy.ServiceProxy('uav_arm', SetBool)
         try:
             armed = arm_service(True)
         except rospy.ServiceException as exc:
