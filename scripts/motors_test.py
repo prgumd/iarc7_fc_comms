@@ -41,9 +41,10 @@ if __name__ == '__main__':
 
         # Turn off motors if put into safety mode
         if safety_client.is_safety_active():
-            arm = BoolStamped()
-            arm.data = False
-            arm_pub.publish(arm)
+            try:
+                arm_service(False)
+            except rospy.ServiceException as exc:
+                print("Could not disarm: " + str(exc))
 
             command = OrientationThrottleStamped()
             command.header.stamp = rospy.Time.now()
@@ -67,10 +68,6 @@ if __name__ == '__main__':
                 command.data.roll = 0.0
                 command.data.yaw = 0.0
                 command_pub.publish(command)
-
-            arm = BoolStamped()
-            arm.data = True
-            arm_pub.publish(arm)
 
         rate.sleep()
 
