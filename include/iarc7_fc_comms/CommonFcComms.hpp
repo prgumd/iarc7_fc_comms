@@ -102,6 +102,9 @@ namespace FcComms{
         // Just use the default constructor
         T flightControlImpl_;
 
+        // Broadcaster to send transforms with
+        tf2_ros::TransformBroadcaster transform_broadcaster_;
+
         // Subscriber for uav_angle values
         ros::Subscriber uav_angle_subscriber;
 
@@ -143,6 +146,7 @@ safety_client_(nh_, "fc_comms_msp"),
 battery_publisher(),
 status_publisher(),
 flightControlImpl_(),
+transform_broadcaster_(),
 uav_angle_subscriber(),
 uav_throttle_subscriber(),
 uav_arm_service(),
@@ -467,7 +471,6 @@ void CommonFcComms<T>::publishFcStatus()
 template<class T>
 void CommonFcComms<T>::sendOrientationTransform(double (&attitude)[3])
 {
-  static tf2_ros::TransformBroadcaster br;
   geometry_msgs::TransformStamped transformStamped;
 
   transformStamped.header.stamp = ros::Time::now();
@@ -483,7 +486,7 @@ void CommonFcComms<T>::sendOrientationTransform(double (&attitude)[3])
   transformStamped.transform.rotation.z = q.z();
   transformStamped.transform.rotation.w = q.w();
 
-  br.sendTransform(transformStamped);
+  transform_broadcaster_.sendTransform(transformStamped);
 }
 
 #endif
