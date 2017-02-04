@@ -8,6 +8,7 @@
 ////////////////////////////////////////////////////////////////////////////
 #include <ros/ros.h>
 #include <cmath>
+#include <sstream>
 #include <string>
 
 #include "iarc7_fc_comms/MspFcComms.hpp"
@@ -282,6 +283,24 @@ FcCommsReturns MspFcComms::findFc(std::string& serial_port)
 {
     // List of serial ports
     std::vector<serial::PortInfo> devices = serial::list_ports();
+
+    // Log discovered serial ports
+    std::ostringstream s;
+    s << "Discovered serial ports: ";
+    for (const serial::PortInfo& device : devices) {
+        s << "("
+          << "port: " << device.port
+          << ", "
+          << "description: " << device.description
+          << ", "
+          << "id: " << device.hardware_id
+          << ")"
+          << ", ";
+    }
+
+    // This has to be the stream version because printf throws a warning if
+    // there aren't any format arguments
+    ROS_INFO_STREAM(s.str());
 
     bool found(false);
     std::vector<serial::PortInfo>::iterator iter = devices.begin();
