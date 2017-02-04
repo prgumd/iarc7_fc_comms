@@ -171,7 +171,7 @@ namespace FcComms
 
         uint8_t response[FcCommsMspConf::kMspMaxDataLength];
 
-        // Returns the attitude in terms of roll pitch and yaw
+        // Returns the attitude in terms of roll pitch and yaw in radians
         void getAttitude(double (&attitude_values)[3])
         {
             // Jetson runs in little endian mode and the FC
@@ -186,13 +186,14 @@ namespace FcComms
                 // Reinterpret as signed
                 int16_t* temp = reinterpret_cast<int16_t*>(&unpacked_value);
 
-                // Convert to degrees
+                // Convert to doubles
                 attitude_values[i] = static_cast<double>(*temp);
             }
 
-            // Roll and pitch are 10x what their angles actually are
-            attitude_values[0] = attitude_values[0] / 10.0;
-            attitude_values[1] = attitude_values[1] / 10.0;
+            // Roll and pitch are in tenths of degrees, heading is in degrees
+            attitude_values[0] = attitude_values[0] / 10.0 * M_PI / 180.0;
+            attitude_values[1] = attitude_values[1] / 10.0 * M_PI / 180.0;
+            attitude_values[2] = attitude_values[2] * M_PI / 180.0;
         }
     };
 }
