@@ -16,8 +16,8 @@ namespace FcComms
 
         static const uint32_t kSerialTimeoutMs{75};
 
-        // Needs space on end to bug in serial package
-        static constexpr char const * const kHardwareId{"USB VID:PID=10c4:ea60 SNR=0001"};
+        static constexpr char const * const kHardwareId
+            {"USB VID:PID=0483:5740 SNR=206438515533"};
 
         // In seconds.
         static constexpr const float kFcSensorsUpdatePeriod{0.2};
