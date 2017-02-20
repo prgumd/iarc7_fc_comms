@@ -35,7 +35,7 @@ FcCommsReturns MspFcComms::safetyLand()
     // to CommonConf::kMaxAllowedThrottle since translated_rc_values_[2] can't be set higher
     // than CommonConf::kMaxAllowedThrottle
 
-    double current_throttle = (double(translated_rc_values_[2]) - FcCommsMspConf::kMspThrottleStartPoint)
+    double current_throttle = (double(translated_rc_values_[2]) - FcCommsMspConf::kMspStickStartPoint)
                             / FcCommsMspConf::kMspThrottleScale;
 
     double throttle_output;
@@ -50,7 +50,7 @@ FcCommsReturns MspFcComms::safetyLand()
     }
 
     double rc_output = throttle_output * FcCommsMspConf::kMspThrottleScale
-                     + FcCommsMspConf::kMspThrottleStartPoint;
+                     + FcCommsMspConf::kMspStickStartPoint;
 
     translated_rc_values_[0] = 0.0;
     translated_rc_values_[1] = 0.0;
@@ -81,13 +81,13 @@ FcCommsReturns MspFcComms::processDirectionCommandMessage(
 
     // Send out the rx values using sendMessage.
     double roll_output     = (constrained_roll * FcCommsMspConf::kMspRollScale)
-                           + FcCommsMspConf::kMspMidPoint;
+                           + FcCommsMspConf::kMspStickMidPoint;
     double pitch_output    = (constrained_pitch * FcCommsMspConf::kMspPitchScale)
-                           + FcCommsMspConf::kMspMidPoint;
+                           + FcCommsMspConf::kMspStickMidPoint;
     double throttle_output = constrained_throttle * FcCommsMspConf::kMspThrottleScale
-                           + FcCommsMspConf::kMspThrottleStartPoint;
+                           + FcCommsMspConf::kMspStickStartPoint;
     double yaw_rate_output = (constrained_yaw_rate * FcCommsMspConf::kMspYawScale)
-                           + FcCommsMspConf::kMspMidPoint;
+                           + FcCommsMspConf::kMspStickMidPoint;
 
     translated_rc_values_[0] = static_cast<uint16_t>(roll_output);
     translated_rc_values_[1] = static_cast<uint16_t>(pitch_output);
