@@ -1,6 +1,8 @@
 #ifndef MSP_CONF_HPP
 #define MSP_CONF_HPP
 
+#include <cmath>
+
 ////////////////////////////////////////////////////////////////////////////
 //
 // Configuration for MSP flight controller node.
@@ -51,13 +53,15 @@ namespace FcComms
         static constexpr char const * const kMspSendHeader{"$M<"};
 
         // MSP RC scaling factors
-        static constexpr const double kMspMidPoint{1500.0};
-        static constexpr const double kMspPitchScale{10.0}; // Should be filled in with values based on (kMspMax-kMspMidpoint) / max_angle
-        static constexpr const double kMspRollScale{10.0};  // Should be filled in with values based on (kMspMax-kMspMidpoint) / max_angle
-        static constexpr const double kMspYawScale{10.0};   // Should be filled in with values based on (kMspMax-kMspMidpoint) / max_angle
-        static constexpr const double kMspThrottleStartPoint{950.0};
-        static constexpr const double kMspThrottleScale{(2000.0-kMspThrottleStartPoint)};  // (Max-Min) * throttle + min where throttle is ranged from 0-1
-        static constexpr const double kSafetyLandingThrottle{0.3};
+        static constexpr const double kMspStickStartPoint{1100.0};
+        static constexpr const double kMspStickMidPoint{1500.0};
+        static constexpr const double kMspStickEndPoint{1900.0};
+        static constexpr const double kMspMaxAngleRadians{40.0 * M_PI / 180.0};
+        static constexpr const double kMspPitchScale{(kMspStickEndPoint - kMspStickMidPoint)/kMspMaxAngleRadians};
+        static constexpr const double kMspRollScale{kMspPitchScale};
+        static constexpr const double kMspYawScale{0.0};// Should be filled in with values based on (kMspMax-kMspMidpoint) / max rate of rotation
+        static constexpr const double kMspThrottleScale{(kMspStickEndPoint-kMspStickStartPoint)};  // (Max-Min) * throttle + min where throttle is ranged from 0-1
+        static constexpr const double kSafetyLandingThrottle{(1755.0 - kMspStickStartPoint)/kMspThrottleScale};
 
     };
 
