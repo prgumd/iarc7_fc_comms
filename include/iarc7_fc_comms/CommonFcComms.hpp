@@ -273,8 +273,9 @@ bool CommonFcComms<T>::uavArmServiceHandler(
         }
         else
         {
-            ROS_ERROR("Failed to retrieve flight controller arm status");     
+            ROS_ERROR("Failed to retrieve flight controller arm status");
         }
+        update();
     }
 
     ROS_INFO("Failed to arm or disarm the FC: timed out");
