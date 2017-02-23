@@ -258,8 +258,9 @@ bool CommonFcComms<T>::uavArmServiceHandler(
 
     // Check to see if the craft actually armed
     ros::Time start_time = ros::Time::now();
-    while((ros::Time::now() - start_time) < ros::Duration(CommonConf::kMaxArmDelay))
+    while(ros::ok() && ((ros::Time::now() - start_time) < ros::Duration(CommonConf::kMaxArmDelay)))
     {
+        ros::spinOnce();
         bool armed;
         FcCommsReturns status = flightControlImpl_.isArmed(armed);
         if (status == FcCommsReturns::kReturnOk) {
@@ -276,7 +277,7 @@ bool CommonFcComms<T>::uavArmServiceHandler(
         }
     }
 
-    ROS_INFO("Failed to arm or disarm the FC: timeout out");
+    ROS_INFO("Failed to arm or disarm the FC: timed out");
     response.success = false;
     response.message = "timed out";
     return true;
