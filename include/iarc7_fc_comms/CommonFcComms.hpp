@@ -354,7 +354,7 @@ void CommonFcComms<T>::updateDirection()
 {
     FcCommsReturns status{FcCommsReturns::kReturnOk};
 
-    if(have_new_direction_command_message_)
+    if(have_new_direction_command_message_ && fc_armed_)
     {
         status = flightControlImpl_.processDirectionCommandMessage(
                      last_direction_command_message_ptr_);
