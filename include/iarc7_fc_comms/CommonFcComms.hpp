@@ -258,8 +258,9 @@ bool CommonFcComms<T>::uavArmServiceHandler(
 
     // Check to see if the craft actually armed
     ros::Time start_time = ros::Time::now();
-    while((ros::Time::now() - start_time) < ros::Duration(CommonConf::kMaxArmDelay))
+    while(ros::ok() && ((ros::Time::now() - start_time) < ros::Duration(CommonConf::kMaxArmDelay)))
     {
+        ros::spinOnce();
         bool armed;
         FcCommsReturns status = flightControlImpl_.isArmed(armed);
         if (status == FcCommsReturns::kReturnOk) {
@@ -272,11 +273,12 @@ bool CommonFcComms<T>::uavArmServiceHandler(
         }
         else
         {
-            ROS_ERROR("Failed to retrieve flight controller arm status");     
+            ROS_ERROR("Failed to retrieve flight controller arm status");
         }
+        update();
     }
 
-    ROS_INFO("Failed to arm or disarm the FC: timeout out");
+    ROS_INFO("Failed to arm or disarm the FC: timed out");
     response.success = false;
     response.message = "timed out";
     return true;
@@ -352,7 +354,7 @@ void CommonFcComms<T>::updateDirection()
 {
     FcCommsReturns status{FcCommsReturns::kReturnOk};
 
-    if(have_new_direction_command_message_)
+    if(have_new_direction_command_message_ && fc_armed_)
     {
         status = flightControlImpl_.processDirectionCommandMessage(
                      last_direction_command_message_ptr_);
