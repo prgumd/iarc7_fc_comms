@@ -18,9 +18,9 @@ namespace FcComms
 
         static const uint32_t kSerialTimeoutMs{75};
 
-        static constexpr double kConnectWaitPeriod{0.5};
+        static constexpr double kConnectWaitPeriod{0.2};
 
-        static constexpr double kMspWaitForReplyTimeout{1.0};
+        static constexpr double kMspWaitForReplyTimeout{0.2};
 
         static constexpr char const * const kHardwareId
             {"USB VID:PID=0483:5740 SNR=206438515533"};

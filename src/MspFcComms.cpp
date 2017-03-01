@@ -265,7 +265,7 @@ FcCommsReturns MspFcComms::connect()
             return FcCommsReturns::kReturnError;
         }
 
-        ros::Rate rate(10);
+        ros::Rate rate(30);
         ros::Time start_time = ros::Time::now();
         while(ros::ok() && (ros::Time::now() - start_time < ros::Duration(FcCommsMspConf::kConnectWaitPeriod)))
         {
@@ -373,7 +373,7 @@ FcCommsReturns MspFcComms::sendMessage(T& message)
         // Catch if there is an error writing
         catch(const std::exception& e)
         {
-            ROS_ERROR("FC_Comms error sending MSP packet");
+            ROS_ERROR("FC_Comms error flushing serial buffer");
             ROS_ERROR("Exception: %s", e.what());
             fc_comms_status_ = FcCommsStatus::kDisconnected;
             return FcCommsReturns::kReturnError;
@@ -456,7 +456,7 @@ FcCommsReturns MspFcComms::receiveResponseAfterSend(
                 {
                     if((ros::Time::now() - start_time) > ros::Duration(FcCommsMspConf::kSerialTimeoutMs/1000.0))
                     {
-                        ROS_ERROR("Had to wait more than one serial timeout for message header");
+                        ROS_WARN("Had to wait more than one serial timeout for message header");
                     }
                     break;
                 }
@@ -488,11 +488,10 @@ FcCommsReturns MspFcComms::receiveResponseAfterSend(
         std::string header_end;
         size_t read_bytes = fc_serial_->read(header_end, FcCommsMspConf::kMspHeaderSize - 1);
         if(read_bytes != FcCommsMspConf::kMspHeaderSize - 1){
-            ROS_ERROR_STREAM("Possible disconnection, wrong number of bytes received. Expected:"
+            ROS_ERROR_STREAM("Wrong number of bytes received. Expected:"
                               << FcCommsMspConf::kMspHeaderSize - 1
                               << " got:"
                               << read_bytes);
-            fc_comms_status_ = FcCommsStatus::kDisconnected;
             return FcCommsReturns::kReturnError;
         }
         header.append(header_end);
@@ -506,22 +505,27 @@ FcCommsReturns MspFcComms::receiveResponseAfterSend(
 
         // Read length of data section
         uint8_t data_length{0};
-        if(fc_serial_->read(&data_length, 1) != 1){
-            ROS_ERROR("Possible disconnection, wrong number of bytes received");
-            fc_comms_status_ = FcCommsStatus::kDisconnected;
+        read_bytes = fc_serial_->read(&data_length, 1);
+        if(read_bytes != 1){
+            ROS_ERROR_STREAM("Wrong number of bytes received when receiving data length. Expected:"
+                              << 1
+                              << " got:"
+                              << read_bytes);
             return FcCommsReturns::kReturnError;
         }
         // Read rest of message
         // Resulting buffer length is data length + message id length + crc
-        uint8_t message_length_no_header = data_length + 1 + 1;
+        size_t message_length_no_header = data_length + 1 + 1;
         uint8_t buffer[message_length_no_header];
 
-        uint8_t message_length_read = fc_serial_->read(&buffer[0], message_length_no_header);
+        read_bytes = fc_serial_->read(&buffer[0], message_length_no_header);
         // Check that the lengths read are correct
-        if(message_length_read != message_length_no_header)
+        if(read_bytes != message_length_no_header)
         {
-            ROS_ERROR("FC_Comms not all bytes received, expected: %d, got: %d", message_length_no_header, message_length_read);
-            fc_comms_status_ = FcCommsStatus::kDisconnected;
+            ROS_ERROR_STREAM("FC_Comms not all bytes received when receiving data section. Expected:"
+                              << message_length_no_header
+                              << " got:"
+                              << read_bytes);
             return FcCommsReturns::kReturnError;
         }
 
@@ -535,7 +539,7 @@ FcCommsReturns MspFcComms::receiveResponseAfterSend(
         // Calculate checksum from received data
         // Only checksum up to message_length_read_1 to avoid xoring the checksum
         uint8_t crc = data_length;
-        for(int i = 0; i < message_length_no_header - 1; i++)
+        for(size_t i = 0; i < message_length_no_header - 1; i++)
         {
             crc ^= buffer[i];
         }
