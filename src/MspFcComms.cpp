@@ -265,6 +265,14 @@ FcCommsReturns MspFcComms::connect()
             return FcCommsReturns::kReturnError;
         }
 
+        ros::Rate rate(30);
+        ros::Time start_time = ros::Time::now();
+        while(ros::ok() && (ros::Time::now() - start_time < ros::Duration(FcCommsMspConf::kConnectWaitPeriod)))
+        {
+            ros::spinOnce();
+            rate.sleep();
+        }
+
         ROS_INFO("FC_Comms Connected to FC");
         fc_comms_status_ = FcCommsStatus::kConnected;
 
@@ -350,6 +358,27 @@ FcCommsReturns MspFcComms::sendMessage(T& message)
 {
     if(fc_comms_status_ == FcCommsStatus::kConnected)
     {
+        try
+        {
+            if(fc_serial_->available() > 0)
+            {
+                ROS_ERROR("There were received bytes in the input buffer prior to sending an MSP packet, flushing buffer");
+                while(fc_serial_->available() > 0)
+                {
+                    uint8_t temp;
+                    fc_serial_->read(&temp, 1);
+                }
+            }
+        }
+        // Catch if there is an error writing
+        catch(const std::exception& e)
+        {
+            ROS_ERROR("FC_Comms error flushing serial buffer");
+            ROS_ERROR("Exception: %s", e.what());
+            fc_comms_status_ = FcCommsStatus::kDisconnected;
+            return FcCommsReturns::kReturnError;
+        }
+
         // Check length of data section
         if(message.data_length > FcCommsMspConf::kMspMaxDataLength)
         {
@@ -414,15 +443,60 @@ FcCommsReturns MspFcComms::receiveResponseAfterSend(
 {
     try
     {
-        // Now receive
+        // Wait for the first character of a header to exist in the buffer
+        ros::Time start_time = ros::Time::now();
+        ros::Rate check_rate(30);
         std::string header;
-        if(fc_serial_->read(header, FcCommsMspConf::kMspHeaderSize) != FcCommsMspConf::kMspHeaderSize){
-            ROS_ERROR("Possible disconnection, wrong number of bytes received");
-            fc_comms_status_ = FcCommsStatus::kDisconnected;
-        }
+        while(true)     
+        {
+            size_t read_bytes = fc_serial_->read(header, 1);
+            if(read_bytes == 1)
+            {
+                if(header[0] == FcCommsMspConf::kMspReceiveHeader[0])
+                {
+                    if((ros::Time::now() - start_time) > ros::Duration(FcCommsMspConf::kSerialTimeoutMs/1000.0))
+                    {
+                        ROS_WARN("Had to wait more than one serial timeout for message header");
+                    }
+                    break;
+                }
+                else
+                {
+                    ROS_ERROR("Partial invalid header received when receiving MSP packet");
+                    return FcCommsReturns::kReturnError;
+                }
+            }
 
-        // Header is of type std::string so we can use this type of comparison
-        if(header != FcCommsMspConf::kMspReceiveHeader)
+            ROS_ASSERT_MSG(read_bytes == 0, "Impossible number of bytes received. Possible bug in serial library?");
+
+            if(!ros::ok())
+            {
+                ROS_ERROR("ros::ok check failed in the middle of receiving an MSP packet");
+                return FcCommsReturns::kReturnError;
+            }
+            if((ros::Time::now() - start_time) > ros::Duration(FcCommsMspConf::kMspWaitForReplyTimeout))
+            {
+                ROS_ERROR("Timeout waiting for first character of MSP packet header");
+                return FcCommsReturns::kReturnError;
+            }
+            ros::spinOnce();
+            check_rate.sleep();
+        }
+        
+        // Read the rest of the header in
+        std::string header_end;
+        size_t read_bytes = fc_serial_->read(header_end, FcCommsMspConf::kMspHeaderSize - 1);
+        if(read_bytes != FcCommsMspConf::kMspHeaderSize - 1){
+            ROS_ERROR_STREAM("Wrong number of bytes received. Expected:"
+                              << FcCommsMspConf::kMspHeaderSize - 1
+                              << " got:"
+                              << read_bytes);
+            return FcCommsReturns::kReturnError;
+        }
+        header.append(header_end);
+
+        // Use std::string to perform string comparison
+        if(std::string(header) != FcCommsMspConf::kMspReceiveHeader)
         {
             ROS_ERROR("Invalid message header from FC.");
             return FcCommsReturns::kReturnError;
@@ -430,33 +504,41 @@ FcCommsReturns MspFcComms::receiveResponseAfterSend(
 
         // Read length of data section
         uint8_t data_length{0};
-        if(fc_serial_->read(&data_length, 1) != 1){
-            ROS_ERROR("Possible disconnection, wrong number of bytes received");
-            fc_comms_status_ = FcCommsStatus::kDisconnected;
+        read_bytes = fc_serial_->read(&data_length, 1);
+        if(read_bytes != 1){
+            ROS_ERROR_STREAM("Wrong number of bytes received when receiving data length. Expected:"
+                              << 1
+                              << " got:"
+                              << read_bytes);
+            return FcCommsReturns::kReturnError;
         }
         // Read rest of message
         // Resulting buffer length is data length + message id length + crc
-        uint8_t message_length_no_header = data_length + 1 + 1;
+        size_t message_length_no_header = data_length + 1 + 1;
         uint8_t buffer[message_length_no_header];
 
-        uint8_t message_length_read = fc_serial_->read(&buffer[0], message_length_no_header);
+        read_bytes = fc_serial_->read(&buffer[0], message_length_no_header);
+        // Check that the lengths read are correct
+        if(read_bytes != message_length_no_header)
+        {
+            ROS_ERROR_STREAM("FC_Comms not all bytes received when receiving data section. Expected:"
+                              << message_length_no_header
+                              << " got:"
+                              << read_bytes);
+            return FcCommsReturns::kReturnError;
+        }
+
+        // Check that packet received back is for the same packet_id that was sent previously
         if(buffer[0] != packet_id)
         {
             ROS_ERROR("Received packet id does not match the one sent previously");
-        }
-        // Log errors
-        // Check that the lengths read are correct
-        if(message_length_read != message_length_no_header)
-        {
-            ROS_ERROR("FC_Comms not all bytes received, expected: %d, got: %d", message_length_no_header, message_length_read);
-            fc_comms_status_ = FcCommsStatus::kDisconnected;
             return FcCommsReturns::kReturnError;
         }
 
         // Calculate checksum from received data
         // Only checksum up to message_length_read_1 to avoid xoring the checksum
         uint8_t crc = data_length;
-        for(int i = 0; i < message_length_no_header - 1; i++)
+        for(size_t i = 0; i < message_length_no_header - 1; i++)
         {
             crc ^= buffer[i];
         }
