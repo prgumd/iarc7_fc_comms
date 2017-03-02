@@ -466,10 +466,9 @@ FcCommsReturns MspFcComms::receiveResponseAfterSend(
                     return FcCommsReturns::kReturnError;
                 }
             }
-            else if(read_bytes > 1)
-            {
-                ROS_ASSERT("Impossible number of bytes received. Possible bug in serial library?");
-            }
+
+            ROS_ASSERT_MSG(read_bytes == 0, "Impossible number of bytes received. Possible bug in serial library?");
+
             if(!ros::ok())
             {
                 ROS_ERROR("ros::ok check failed in the middle of receiving an MSP packet");
