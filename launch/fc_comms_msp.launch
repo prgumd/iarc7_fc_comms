@@ -1,3 +1,7 @@
 <launch>
+    <arg name="bond_id_namespace" default="safety_bonds" />
+
     <node name="fc_comms_msp" pkg="iarc7_fc_comms" type="fc_comms_msp"/>
+    <param name="$(arg bond_id_namespace)/fc_comms_msp/form_bond"
+        value="true" />
 </launch>
