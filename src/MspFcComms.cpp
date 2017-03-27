@@ -132,6 +132,16 @@ FcCommsReturns MspFcComms::printRawRC()
     return status;
 }
 
+FcCommsReturns MspFcComms::getAccelerations(double (&accelerations)[3])
+{
+    MSP_RAW_IMU msp_imu;
+    FcCommsReturns status = sendMessage(msp_imu);
+    if (status == FcCommsReturns::kReturnOk) {
+        msp_imu.getAcc(accelerations);
+    }
+    return status;
+}
+
 FcCommsReturns MspFcComms::isAutoPilotAllowed(bool& allowed)
 {
     uint16_t autoRCvalues[FcCommsMspConf::kMspReceivableChannels];

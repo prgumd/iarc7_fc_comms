@@ -73,6 +73,9 @@ namespace FcComms
             printRawRC();
 
         FcCommsReturns  __attribute__((warn_unused_result))
+            getAccelerations(double (&accelerations)[3]);
+
+        FcCommsReturns  __attribute__((warn_unused_result))
             isAutoPilotAllowed(bool& allowed);
 
         FcCommsReturns  __attribute__((warn_unused_result))
