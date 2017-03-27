@@ -534,6 +534,7 @@ void CommonFcComms<T>::sendAccelerations(double (&accelerations)[3])
   sensor_msgs::Imu imu;
 
   imu.header.stamp = ros::Time::now();
+  imu.header.frame_id = CommonConf::kTfChildName;
 
   imu.linear_acceleration.x = accelerations[0];
   imu.linear_acceleration.y = accelerations[1];
