@@ -235,6 +235,9 @@ namespace FcComms
                 // which has an mpu6500 in it
                 // In cleanflight accgyro_mpu6500.c in function mpu6500AccInit
                 // The scale for 1g of acceleration for is set to 512 * 8
+                // We are also using a hacked up version of cleanflight that does not
+                // apply this scaling factor using a bitshift hack before sending so
+                // we need to do it here.
                 acc_values[i] = static_cast<double>(*temp)/(512.0 * 8.0);
             }
         }
