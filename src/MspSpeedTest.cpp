@@ -78,6 +78,22 @@ int main(int argc, char **argv)
         delta = ros::Time::now() - start_time;
         ROS_INFO("Direction/attitude packet rate: %f hz", 200.0/delta.toSec());
         ros::spinOnce();
+
+        start_time = ros::Time::now();
+        for(int i = 0; i < 100; i++)
+        {
+            double accelerations[3];
+            status = comms.getAccelerations(accelerations);
+
+            if(status != FcCommsReturns::kReturnOk)
+            {
+                ROS_ASSERT_MSG(false, "Error sending get acceleration packet");
+            }
+        }
+
+        delta = ros::Time::now() - start_time;
+        ROS_INFO("Acceleration packet rate: %f hz", 100.0/delta.toSec());
+        ros::spinOnce();
     }
 
     status = comms.disconnect();

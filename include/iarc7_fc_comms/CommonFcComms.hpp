@@ -13,6 +13,7 @@
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_ros/transform_broadcaster.h>
 #include <geometry_msgs/TransformStamped.h>
+#include <sensor_msgs/Imu.h>
 #include "CommonConf.hpp"
 #include "iarc7_safety/SafetyClient.hpp"
 #include "iarc7_msgs/BoolStamped.h"
@@ -70,6 +71,9 @@ namespace FcComms{
         // Send arm or direction message to flight controller
         void updateDirection();
 
+        // Get acceleration data from the flight controller
+        void updateAccelerations();
+
         // Activate the safety response of the flight controller impl
         void activateFcSafety();
 
@@ -78,6 +82,9 @@ namespace FcComms{
 
         // Send out the transform for the level_quad to quad
         void sendOrientationTransform(double (&attitude)[3]);
+
+        // Send out the accelerations from the FC
+        void sendAccelerations(double (&accelerations)[3]);
 
         inline void uavDirectionCommandMessageHandler(
                 const iarc7_msgs::OrientationThrottleStamped::ConstPtr& message) {
@@ -98,6 +105,7 @@ namespace FcComms{
         // Publishers for FC sensors
         ros::Publisher battery_publisher;
         ros::Publisher status_publisher;
+        ros::Publisher imu_publisher;
 
         // Just use the default constructor
         T flightControlImpl_;
@@ -145,6 +153,7 @@ nh_(),
 safety_client_(nh_, "fc_comms_msp"),
 battery_publisher(),
 status_publisher(),
+imu_publisher(),
 flightControlImpl_(),
 transform_broadcaster_(),
 uav_angle_subscriber(),
@@ -190,6 +199,13 @@ FcCommsReturns CommonFcComms<T>::init()
             "fc_status", 50);
     if (!status_publisher) {
         ROS_ERROR("CommonFcComms failed to create status publisher");
+        return FcCommsReturns::kReturnError;
+    }
+
+    imu_publisher = nh_.advertise<sensor_msgs::Imu>(
+            "fc_imu", 50);
+    if (!imu_publisher) {
+        ROS_ERROR("CommonFcComms failed to create imu publisher");
         return FcCommsReturns::kReturnError;
     }
 
@@ -369,6 +385,23 @@ void CommonFcComms<T>::updateDirection()
     }
 }
 
+// Get the accelerations from the IMU on the flight controller
+template<class T>
+void CommonFcComms<T>::updateAccelerations()
+{
+    FcCommsReturns status{FcCommsReturns::kReturnOk};
+    double accelerations[3];
+    status = flightControlImpl_.getAccelerations(accelerations);
+    if (status != FcCommsReturns::kReturnOk) {
+        ROS_ERROR("iarc7_fc_comms: Failed to retrieve accelerations from flight controller");
+    }
+    else
+    {
+        ROS_INFO("iarc7_fc_comms: Accelerations: %f %f %f", accelerations[0], accelerations[1], accelerations[2]);
+        sendAccelerations(accelerations);
+    }
+}
+
 // Activate the safety response of the flight controller impl
 template<class T>
 void CommonFcComms<T>::activateFcSafety()
@@ -439,6 +472,7 @@ void CommonFcComms<T>::update()
             {
                 updateDirection();
                 updateAttitude();
+                updateAccelerations();
             }
 
             (this->*sequenced_updates[current_sequenced_update])();
@@ -489,6 +523,21 @@ void CommonFcComms<T>::sendOrientationTransform(double (&attitude)[3])
   transformStamped.transform.rotation.w = q.w();
 
   transform_broadcaster_.sendTransform(transformStamped);
+}
+
+// Send out the accelerations from the quad FC
+template<class T>
+void CommonFcComms<T>::sendAccelerations(double (&accelerations)[3])
+{
+  sensor_msgs::Imu imu;
+
+  imu.header.stamp = ros::Time::now();
+
+  imu.linear_acceleration.x = accelerations[0];
+  imu.linear_acceleration.y = accelerations[1];
+  imu.linear_acceleration.z = accelerations[2];
+
+  imu_publisher.publish(imu);
 }
 
 #endif

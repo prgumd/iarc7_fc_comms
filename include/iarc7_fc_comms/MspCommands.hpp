@@ -196,6 +196,52 @@ namespace FcComms
             attitude_values[2] = attitude_values[2] * M_PI / 180.0;
         }
     };
+
+    struct MSP_RAW_IMU
+    {
+        // Default constructor an destructor
+        MSP_RAW_IMU() = default;
+        ~MSP_RAW_IMU() = default;
+
+        // Don't allow the copy constructor or assignment.
+        MSP_RAW_IMU(const MSP_RAW_IMU& rhs) = delete;
+        MSP_RAW_IMU& operator=(const MSP_RAW_IMU& rhs) = delete;
+
+        static const uint8_t message_id{102};
+        static const uint8_t data_length{0};
+
+        static constexpr char const * const string_name{"MSP_RAW_IMU"};
+
+        uint8_t send[FcCommsMspConf::kMspMaxDataLength]={};
+
+        uint8_t response[FcCommsMspConf::kMspMaxDataLength];
+
+        // Returns the IMU values
+        void getAcc(double (&acc_values)[3])
+        {
+            // Jetson runs in little endian mode and the FC
+            // Receives data in big endian
+            // Jetson sends back 9 IMU data integers. 16bits each.
+            for(uint32_t i = 0; i < 3; i++)
+            {
+                // Unpack the value
+                uint16_t unpacked_value = response[i*2] | (response[(i*2)+1] << 8);
+
+                // Reinterpret as signed
+                int16_t* temp = reinterpret_cast<int16_t*>(&unpacked_value);
+
+                // Convert to doubles
+                // IARC 2016-2017 is using an spf3 evo, which has an MPU9250,
+                // which has an mpu6500 in it
+                // In cleanflight accgyro_mpu6500.c in function mpu6500AccInit
+                // The scale for 1g of acceleration for is set to 512 * 8
+                // We are also using a hacked up version of cleanflight that does not
+                // apply this scaling factor using a bitshift hack before sending so
+                // we need to do it here.
+                acc_values[i] = static_cast<double>(*temp)/(512.0 * 8.0);
+            }
+        }
+    };
 }
 
 #endif
