@@ -20,7 +20,6 @@
 #include "iarc7_msgs/FlightControllerStatus.h"
 #include "iarc7_msgs/Float64Stamped.h"
 #include "iarc7_msgs/OrientationThrottleStamped.h"
-#include "std_msgs/Float32.h"
 #include "std_srvs/SetBool.h"
 
 
@@ -189,7 +188,7 @@ FcCommsReturns CommonFcComms<T>::init()
 
     ROS_ASSERT_MSG(safety_client_.formBond(), "fc_comms_msp: Could not form bond with safety client");
 
-    battery_publisher = nh_.advertise<std_msgs::Float32>("fc_battery", 50);
+    battery_publisher = nh_.advertise<iarc7_msgs::Float64Stamped>("fc_battery", 50);
     if (!battery_publisher) {
         ROS_ERROR("CommonFcComms failed to create battery publisher");
         return FcCommsReturns::kReturnError;
@@ -336,15 +335,18 @@ void CommonFcComms<T>::updateAutoPilotEnabled()
 template<class T>
 void CommonFcComms<T>::updateBattery()
 {
-    std_msgs::Float32 battery;
-    FcCommsReturns status = flightControlImpl_.getBattery(battery.data);
+    float voltage;
+    FcCommsReturns status = flightControlImpl_.getBattery(voltage);
     if (status != FcCommsReturns::kReturnOk) {
         ROS_ERROR("iarc7_fc_comms: Failed to retrieve flight controller battery info");
     }
     else
     {
-        ROS_DEBUG("iarc7_fc_comms: Battery level: %f", battery.data);
-        battery_publisher.publish(battery);
+        iarc7_msgs::Float64Stamped battery_msg;
+        battery_msg.header.stamp = ros::Time::now();
+        battery_msg.data = voltage;
+        ROS_DEBUG("iarc7_fc_comms: Battery level: %f", battery_msg.data);
+        battery_publisher.publish(battery_msg);
     }
 }
 
