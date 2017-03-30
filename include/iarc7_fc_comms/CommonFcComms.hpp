@@ -543,8 +543,8 @@ void CommonFcComms<T>::sendAccelerations(double (&accelerations)[3])
   imu.orientation_covariance[0] = -1;
   imu.angular_velocity_covariance[0] = -1;
   imu.linear_acceleration_covariance[0] = CommonConf::kAccelerationVariance[0];
-  imu.linear_acceleration_covariance[3] = CommonConf::kAccelerationVariance[1];
-  imu.linear_acceleration_covariance[6] = CommonConf::kAccelerationVariance[2];
+  imu.linear_acceleration_covariance[4] = CommonConf::kAccelerationVariance[1];
+  imu.linear_acceleration_covariance[8] = CommonConf::kAccelerationVariance[2];
 
   imu_publisher.publish(imu);
 }
