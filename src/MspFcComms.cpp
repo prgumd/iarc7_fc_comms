@@ -299,6 +299,12 @@ FcCommsReturns MspFcComms::connect()
 
 FcCommsReturns MspFcComms::findFc(std::string& serial_port)
 {
+    std::string manual_port_name(FcCommsMspConf::kSerialPort);
+    if (manual_port_name.size() != 0) {
+        serial_port = manual_port_name;
+        return FcCommsReturns::kReturnOk;
+    }
+
     // List of serial ports
     std::vector<serial::PortInfo> devices = serial::list_ports();
 
