@@ -14,7 +14,7 @@ namespace FcComms
 
     struct FcCommsMspConf
     {
-        static const uint32_t kBaudRate{115200};
+        static const uint32_t kBaudRate{230400};
 
         static const uint32_t kSerialTimeoutMs{75};
 
@@ -24,6 +24,12 @@ namespace FcComms
 
         static constexpr char const * const kHardwareId
             {"USB VID:PID=0483:5740 SNR=206438515533"};
+
+        // Uncomment the line below to specify a particular serial port
+        // instead of using the usb hardware id
+        static constexpr char const * const kSerialPort
+            {""};
+            //{"/dev/ttyTHS2"};
 
         // In seconds.
         static constexpr const float kFcSensorsUpdatePeriod{0.2};
