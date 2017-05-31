@@ -28,8 +28,8 @@ namespace FcComms
         // Uncomment the line below to specify a particular serial port
         // instead of using the usb hardware id
         static constexpr char const * const kSerialPort
-            //{""};
-            {"/dev/ttyTHS2"};
+            {""};
+            //{"/dev/ttyTHS2"};
 
         // In seconds.
         static constexpr const float kFcSensorsUpdatePeriod{0.2};
