@@ -63,9 +63,9 @@ namespace FcComms
         static constexpr char const * const kMspSendHeader{"$M<"};
 
         // MSP RC scaling factors
-        static constexpr const double kMspStickStartPoint{1100.0};
+        static constexpr const double kMspStickStartPoint{1000.0};
         static constexpr const double kMspStickMidPoint{1500.0};
-        static constexpr const double kMspStickEndPoint{1900.0};
+        static constexpr const double kMspStickEndPoint{2000.0};
         static constexpr const double kMspMaxAngleRadians{40.0 * M_PI / 180.0};
         static constexpr const double kMspPitchScale{(kMspStickEndPoint - kMspStickMidPoint)/kMspMaxAngleRadians};
         static constexpr const double kMspRollScale{kMspPitchScale};
