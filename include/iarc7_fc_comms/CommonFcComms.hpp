@@ -399,7 +399,7 @@ void CommonFcComms<T>::updateAccelerations()
     }
     else
     {
-        ROS_INFO("iarc7_fc_comms: Accelerations: %f %f %f", accelerations[0], accelerations[1], accelerations[2]);
+        ROS_DEBUG("iarc7_fc_comms: Accelerations: %f %f %f", accelerations[0], accelerations[1], accelerations[2]);
         sendAccelerations(accelerations);
     }
 }
