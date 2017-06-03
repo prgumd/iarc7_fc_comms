@@ -18,7 +18,7 @@ if __name__ == '__main__':
 
     rospy.wait_for_service('uav_arm')
     arm_service = rospy.ServiceProxy('uav_arm', SetBool)
-
+    rospy.logerr('done waiting')
     safety_client = SafetyClient('motors_test')
     safety_client.form_bond()
 
@@ -27,10 +27,11 @@ if __name__ == '__main__':
     armed = False
     while armed == False :
         try:
+            rospy.logerr('Trying to arm')
             armed = arm_service(True)
         except rospy.ServiceException as exc:
-            print("Could not arm: " + str(exc))
-
+            rospy.logerr('Could not arm: ' + str(exc))
+    rospy.logerr('Armed')
     rate = rospy.Rate(30)
     throttle = 0
     while not rospy.is_shutdown():
@@ -44,7 +45,7 @@ if __name__ == '__main__':
             try:
                 arm_service(False)
             except rospy.ServiceException as exc:
-                print("Could not disarm: " + str(exc))
+                rospy.loggerr("Could not disarm: " + str(exc))
 
             command = OrientationThrottleStamped()
             command.header.stamp = rospy.Time.now()
