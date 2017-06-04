@@ -9,10 +9,12 @@
 // control communication nodes. Handles a lot of ROS specifics.
 //
 ////////////////////////////////////////////////////////////////////////////
+#include <math.h>
+#include <vector>
+
 #include <ros/ros.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_ros/transform_broadcaster.h>
-#include <vector>
 
 #include "iarc7_safety/SafetyClient.hpp"
 #include "iarc7_msgs/BoolStamped.h"
@@ -146,6 +148,11 @@ namespace FcComms{
         bool fc_failsafe_ = false;
 
         bool fc_auto_pilot_enabled_ = false;
+
+        bool initial_heading_as_offset = false;
+
+        double initial_heading_offset = std::nan("");
+
     };
 }
 
@@ -169,6 +176,10 @@ last_direction_command_message_ptr_()
     if (ros_utils::ParamUtils::getParam<bool>(private_nh_, "publish_fc_battery")) {
         sequenced_updates.push_back(&CommonFcComms::updateBattery);
     }
+
+    initial_heading_as_offset = 
+                            ros_utils::ParamUtils::getParam<bool>(
+                            private_nh_, "initial_heading_as_offset");
 }
 
 template<class T>
@@ -364,11 +375,30 @@ void CommonFcComms<T>::updateAttitude()
 {
     double attitude[3];
     FcCommsReturns status = flightControlImpl_.getAttitude(attitude);
+
     if (status != FcCommsReturns::kReturnOk) {
         ROS_ERROR("iarc7_fc_comms: Failed to retrieve attitude from flight controller");
     }
     else
     {
+        if(initial_heading_as_offset) {
+            if(std::isnan(initial_heading_offset)) {
+                initial_heading_offset = attitude[2];
+                ROS_DEBUG("Initial heading: %f", initial_heading_offset);
+            }
+
+            double yaw = attitude[2] - initial_heading_offset;
+
+            // Limit to 0 and 2*pi
+            if(yaw < 0.0) {
+                yaw += 2.0* M_PI;
+            }
+            else if(yaw >= 2.0 * M_PI) {
+                yaw -= 2.0 * M_PI;
+            }
+            attitude[2] = yaw;
+        }
+
         ROS_DEBUG("iarc7_fc_comms: Attitude: %f %f %f", attitude[0], attitude[1], attitude[2]);
         sendOrientationTransform(attitude);
     }

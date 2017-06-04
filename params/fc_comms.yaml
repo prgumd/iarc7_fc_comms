@@ -1,1 +1,4 @@
 publish_fc_battery: false
+
+# Use the initial heading as the zero point for all future headings
+initial_heading_as_offset: true
