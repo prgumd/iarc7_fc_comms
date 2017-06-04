@@ -149,9 +149,9 @@ namespace FcComms{
 
         bool fc_auto_pilot_enabled_ = false;
 
-        bool initial_heading_as_offset = false;
+        bool initial_heading_as_offset_ = false;
 
-        double initial_heading_offset = std::nan("");
+        double initial_heading_offset_ = std::nan("");
 
     };
 }
@@ -177,7 +177,7 @@ last_direction_command_message_ptr_()
         sequenced_updates.push_back(&CommonFcComms::updateBattery);
     }
 
-    initial_heading_as_offset = 
+    initial_heading_as_offset_ = 
                             ros_utils::ParamUtils::getParam<bool>(
                             private_nh_, "initial_heading_as_offset");
 }
@@ -381,13 +381,13 @@ void CommonFcComms<T>::updateAttitude()
     }
     else
     {
-        if(initial_heading_as_offset) {
-            if(std::isnan(initial_heading_offset)) {
-                initial_heading_offset = attitude[2];
-                ROS_DEBUG("Initial heading: %f", initial_heading_offset);
+        if(initial_heading_as_offset_) {
+            if(std::isnan(initial_heading_offset_)) {
+                initial_heading_offset_ = attitude[2];
+                ROS_DEBUG("Initial heading: %f", initial_heading_offset_);
             }
 
-            double yaw = attitude[2] - initial_heading_offset;
+            double yaw = attitude[2] - initial_heading_offset_;
 
             // Limit to 0 and 2*pi
             if(yaw < 0.0) {
@@ -399,7 +399,11 @@ void CommonFcComms<T>::updateAttitude()
             attitude[2] = yaw;
         }
 
-        ROS_DEBUG("iarc7_fc_comms: Attitude: %f %f %f", attitude[0], attitude[1], attitude[2]);
+        ROS_DEBUG("iarc7_fc_comms: Attitude: %f %f %f",
+                  attitude[0],
+                  attitude[1],
+                  attitude[2]);
+
         sendOrientationTransform(attitude);
     }
 }
