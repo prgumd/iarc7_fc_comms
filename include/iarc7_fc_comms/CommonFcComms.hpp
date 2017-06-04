@@ -9,19 +9,25 @@
 // control communication nodes. Handles a lot of ROS specifics.
 //
 ////////////////////////////////////////////////////////////////////////////
+#include <math.h>
+#include <vector>
+
 #include <ros/ros.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_ros/transform_broadcaster.h>
-#include <geometry_msgs/TransformStamped.h>
-#include <sensor_msgs/Imu.h>
-#include "CommonConf.hpp"
+
 #include "iarc7_safety/SafetyClient.hpp"
 #include "iarc7_msgs/BoolStamped.h"
 #include "iarc7_msgs/FlightControllerStatus.h"
 #include "iarc7_msgs/Float64Stamped.h"
 #include "iarc7_msgs/OrientationThrottleStamped.h"
+#include <ros_utils/ParamUtils.hpp>
+
+#include <geometry_msgs/TransformStamped.h>
+#include <sensor_msgs/Imu.h>
 #include "std_srvs/SetBool.h"
 
+#include "CommonConf.hpp"
 
 //mspfccomms actually handles the serial communication
 namespace FcComms{
@@ -98,6 +104,9 @@ namespace FcComms{
         // This node's handle
         ros::NodeHandle nh_;
 
+        // NodeHandle in this node's namespace
+        ros::NodeHandle private_nh_;
+
         // Safety client
         Iarc7Safety::SafetyClient safety_client_;
 
@@ -127,12 +136,10 @@ namespace FcComms{
 
         typedef void (CommonFcComms::*CommonFcCommsMemFn)();
 
-        CommonFcCommsMemFn sequenced_updates[3] = {&CommonFcComms::updateArmed,
-                                                   &CommonFcComms::updateAutoPilotEnabled,
-                                                   &CommonFcComms::updateBattery
-                                                  };
-
-        uint32_t num_sequenced_updates = sizeof(sequenced_updates) / sizeof(CommonFcCommsMemFn);
+        std::vector<CommonFcCommsMemFn> sequenced_updates = {
+                &CommonFcComms::updateArmed,
+                &CommonFcComms::updateAutoPilotEnabled
+            };
 
         uint32_t current_sequenced_update = 0;
 
@@ -141,6 +148,11 @@ namespace FcComms{
         bool fc_failsafe_ = false;
 
         bool fc_auto_pilot_enabled_ = false;
+
+        bool initial_heading_as_offset_ = false;
+
+        double initial_heading_offset_ = std::nan("");
+
     };
 }
 
@@ -149,6 +161,7 @@ using namespace FcComms;
 template<class T>
 CommonFcComms<T>::CommonFcComms() :
 nh_(),
+private_nh_("~"),
 safety_client_(nh_, "fc_comms_msp"),
 battery_publisher(),
 status_publisher(),
@@ -160,7 +173,13 @@ uav_throttle_subscriber(),
 uav_arm_service(),
 last_direction_command_message_ptr_()
 {
+    if (ros_utils::ParamUtils::getParam<bool>(private_nh_, "publish_fc_battery")) {
+        sequenced_updates.push_back(&CommonFcComms::updateBattery);
+    }
 
+    initial_heading_as_offset_ = 
+                            ros_utils::ParamUtils::getParam<bool>(
+                            private_nh_, "initial_heading_as_offset");
 }
 
 template<class T>
@@ -356,12 +375,35 @@ void CommonFcComms<T>::updateAttitude()
 {
     double attitude[3];
     FcCommsReturns status = flightControlImpl_.getAttitude(attitude);
+
     if (status != FcCommsReturns::kReturnOk) {
         ROS_ERROR("iarc7_fc_comms: Failed to retrieve attitude from flight controller");
     }
     else
     {
-        ROS_DEBUG("iarc7_fc_comms: Attitude: %f %f %f", attitude[0], attitude[1], attitude[2]);
+        if(initial_heading_as_offset_) {
+            if(std::isnan(initial_heading_offset_)) {
+                initial_heading_offset_ = attitude[2];
+                ROS_DEBUG("Initial heading: %f", initial_heading_offset_);
+            }
+
+            double yaw = attitude[2] - initial_heading_offset_;
+
+            // Limit to 0 and 2*pi
+            if(yaw < 0.0) {
+                yaw += 2.0* M_PI;
+            }
+            else if(yaw >= 2.0 * M_PI) {
+                yaw -= 2.0 * M_PI;
+            }
+            attitude[2] = yaw;
+        }
+
+        ROS_DEBUG("iarc7_fc_comms: Attitude: %f %f %f",
+                  attitude[0],
+                  attitude[1],
+                  attitude[2]);
+
         sendOrientationTransform(attitude);
     }
 }
@@ -399,7 +441,11 @@ void CommonFcComms<T>::updateAccelerations()
     }
     else
     {
-        ROS_INFO("iarc7_fc_comms: Accelerations: %f %f %f", accelerations[0], accelerations[1], accelerations[2]);
+        ROS_DEBUG("iarc7_fc_comms: Accelerations: %f %f %f",
+                  accelerations[0],
+                  accelerations[1],
+                  accelerations[2]);
+
         sendAccelerations(accelerations);
     }
 }
@@ -478,7 +524,7 @@ void CommonFcComms<T>::update()
             }
 
             (this->*sequenced_updates[current_sequenced_update])();
-            current_sequenced_update = (current_sequenced_update + 1) % num_sequenced_updates;
+            current_sequenced_update = (current_sequenced_update + 1) % sequenced_updates.size();
 
             publishFcStatus();
 

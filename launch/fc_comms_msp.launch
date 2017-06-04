@@ -1,7 +1,10 @@
 <launch>
     <arg name="bond_id_namespace" default="safety_bonds" />
 
-    <node name="fc_comms_msp" pkg="iarc7_fc_comms" type="fc_comms_msp"/>
+    <node name="fc_comms_msp" pkg="iarc7_fc_comms" type="fc_comms_msp">
+        <rosparam command="load"
+            file="$(find iarc7_fc_comms)/params/fc_comms.yaml" />
+    </node>
     <param name="$(arg bond_id_namespace)/fc_comms_msp/form_bond"
         value="true" />
 </launch>

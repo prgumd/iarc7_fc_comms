@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   std_srvs
   roscpp
+  ros_utils
   message_generation
   serial
   tf2

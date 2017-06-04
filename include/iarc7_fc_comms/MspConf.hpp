@@ -71,7 +71,7 @@ namespace FcComms
         static constexpr const double kMspRollScale{kMspPitchScale};
         static constexpr const double kMspYawScale{0.0};// Should be filled in with values based on (kMspMax-kMspMidpoint) / max rate of rotation
         static constexpr const double kMspThrottleScale{(kMspStickEndPoint-kMspStickStartPoint)};  // (Max-Min) * throttle + min where throttle is ranged from 0-1
-        static constexpr const double kSafetyLandingThrottle{(1755.0 - kMspStickStartPoint)/kMspThrottleScale};
+        static constexpr const double kSafetyLandingThrottle{(1640.0 - kMspStickStartPoint)/kMspThrottleScale};
 
     };
 
