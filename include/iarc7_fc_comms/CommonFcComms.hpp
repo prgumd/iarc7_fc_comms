@@ -12,16 +12,20 @@
 #include <ros/ros.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_ros/transform_broadcaster.h>
-#include <geometry_msgs/TransformStamped.h>
-#include <sensor_msgs/Imu.h>
-#include "CommonConf.hpp"
+#include <vector>
+
 #include "iarc7_safety/SafetyClient.hpp"
 #include "iarc7_msgs/BoolStamped.h"
 #include "iarc7_msgs/FlightControllerStatus.h"
 #include "iarc7_msgs/Float64Stamped.h"
 #include "iarc7_msgs/OrientationThrottleStamped.h"
+#include <ros_utils/ParamUtils.hpp>
+
+#include <geometry_msgs/TransformStamped.h>
+#include <sensor_msgs/Imu.h>
 #include "std_srvs/SetBool.h"
 
+#include "CommonConf.hpp"
 
 //mspfccomms actually handles the serial communication
 namespace FcComms{
@@ -98,6 +102,9 @@ namespace FcComms{
         // This node's handle
         ros::NodeHandle nh_;
 
+        // NodeHandle in this node's namespace
+        ros::NodeHandle private_nh_;
+
         // Safety client
         Iarc7Safety::SafetyClient safety_client_;
 
@@ -127,12 +134,10 @@ namespace FcComms{
 
         typedef void (CommonFcComms::*CommonFcCommsMemFn)();
 
-        CommonFcCommsMemFn sequenced_updates[3] = {&CommonFcComms::updateArmed,
-                                                   &CommonFcComms::updateAutoPilotEnabled,
-                                                   &CommonFcComms::updateBattery
-                                                  };
-
-        uint32_t num_sequenced_updates = sizeof(sequenced_updates) / sizeof(CommonFcCommsMemFn);
+        std::vector<CommonFcCommsMemFn> sequenced_updates = {
+                &CommonFcComms::updateArmed,
+                &CommonFcComms::updateAutoPilotEnabled
+            };
 
         uint32_t current_sequenced_update = 0;
 
@@ -149,6 +154,7 @@ using namespace FcComms;
 template<class T>
 CommonFcComms<T>::CommonFcComms() :
 nh_(),
+private_nh_("~"),
 safety_client_(nh_, "fc_comms_msp"),
 battery_publisher(),
 status_publisher(),
@@ -160,7 +166,9 @@ uav_throttle_subscriber(),
 uav_arm_service(),
 last_direction_command_message_ptr_()
 {
-
+    if (ros_utils::ParamUtils::getParam<bool>(private_nh_, "publish_fc_battery")) {
+        sequenced_updates.push_back(&CommonFcComms::updateBattery);
+    }
 }
 
 template<class T>
@@ -478,7 +486,7 @@ void CommonFcComms<T>::update()
             }
 
             (this->*sequenced_updates[current_sequenced_update])();
-            current_sequenced_update = (current_sequenced_update + 1) % num_sequenced_updates;
+            current_sequenced_update = (current_sequenced_update + 1) % sequenced_updates.size();
 
             publishFcStatus();
 
