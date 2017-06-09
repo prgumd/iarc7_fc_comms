@@ -525,6 +525,10 @@ void CommonFcComms<T>::calibrateAccelerometer()
             ROS_ERROR("iarc7_fc_comms: Failed to calibrate accelerometer");
         }
     }
+    else
+    {
+        ROS_WARN("Skipping accleration calibration, there are no landing gear messages");
+    }
 }
 
 // Update information from flight controller and send information
