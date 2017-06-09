@@ -272,6 +272,10 @@ FcCommsReturns CommonFcComms<T>::init()
     {
         ROS_WARN("Contact switch message not received within the startup timeout");
     }
+    else
+    {
+        ROS_INFO("FC Comms received contact switch message before timeout");
+    }
 
     return FcCommsReturns::kReturnOk;
 }
