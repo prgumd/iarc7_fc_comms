@@ -104,7 +104,6 @@ namespace FcComms{
         inline void contactSwitchMessageHandler(
                 const iarc7_msgs::LandingGearContactsStamped::ConstPtr& message) {
             last_contact_switch_message_ptr_ = message;
-            have_contact_switch_message_ = true;
         }
 
         bool uavArmServiceHandler(
@@ -145,8 +144,6 @@ namespace FcComms{
         iarc7_msgs::LandingGearContactsStamped::ConstPtr last_contact_switch_message_ptr_;
 
         bool have_new_direction_command_message_ = false;
-
-        bool have_contact_switch_message_ = false;
 
         typedef void (CommonFcComms::*CommonFcCommsMemFn)();
 
@@ -260,7 +257,7 @@ FcCommsReturns CommonFcComms<T>::init()
 
     const ros::Time start_time = ros::Time::now();
     while (ros::ok()
-           && !have_contact_switch_message_
+           && last_contact_switch_message_ptr_ == nullptr
            && ros::Time::now()
               < start_time
                 + ros::Duration(CommonConf::kContactSwitchStartupTimeout)) {
@@ -268,7 +265,7 @@ FcCommsReturns CommonFcComms<T>::init()
         ros::Duration(0.005).sleep();
     }
 
-    if (!have_contact_switch_message_)
+    if (last_contact_switch_message_ptr_ == nullptr)
     {
         ROS_WARN("Contact switch message not received within the startup timeout");
     }
@@ -530,7 +527,7 @@ void CommonFcComms<T>::reconnect() {
 template<class T>
 void CommonFcComms<T>::calibrateAccelerometer()
 {
-    if( have_contact_switch_message_
+    if( last_contact_switch_message_ptr_ != nullptr
         && last_contact_switch_message_ptr_->front
         && last_contact_switch_message_ptr_->back
         && last_contact_switch_message_ptr_->right
