@@ -527,19 +527,21 @@ void CommonFcComms<T>::reconnect() {
 template<class T>
 void CommonFcComms<T>::calibrateAccelerometer()
 {
-    if( last_contact_switch_message_ptr_ != nullptr
-        && last_contact_switch_message_ptr_->front
-        && last_contact_switch_message_ptr_->back
-        && last_contact_switch_message_ptr_->right
-        && last_contact_switch_message_ptr_->left)
+    if(last_contact_switch_message_ptr_ != nullptr)
     {
-        FcCommsReturns status{FcCommsReturns::kReturnOk};
-
-        status = flightControlImpl_.calibrateAccelerometer();
-
-        if (status != FcCommsReturns::kReturnOk)
+        if(last_contact_switch_message_ptr_->front
+            && last_contact_switch_message_ptr_->back
+            && last_contact_switch_message_ptr_->right
+            && last_contact_switch_message_ptr_->left)
         {
-            ROS_ERROR("iarc7_fc_comms: Failed to calibrate accelerometer");
+            FcCommsReturns status{FcCommsReturns::kReturnOk};
+
+            status = flightControlImpl_.calibrateAccelerometer();
+
+            if (status != FcCommsReturns::kReturnOk)
+            {
+                ROS_ERROR("iarc7_fc_comms: Failed to calibrate accelerometer");
+            }
         }
     }
     else
