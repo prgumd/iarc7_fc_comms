@@ -30,6 +30,7 @@ struct CommonConf
     static constexpr const float kFcSensorsUpdateRateHz{100};
 
     static constexpr const double kMaxArmDelay = 0.1;
+    static constexpr const double kContactSwitchStartupTimeout = 5.0;
 
     static constexpr const double kMinAllowedRoll = -0.25;
     static constexpr const double kMaxAllowedRoll = 0.25;

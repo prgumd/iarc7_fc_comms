@@ -257,6 +257,22 @@ FcCommsReturns CommonFcComms<T>::init()
                                          this);
 
     ROS_INFO("FC Comms registered and subscribed to topics");
+
+    const ros::Time start_time = ros::Time::now();
+    while (ros::ok()
+           && !have_contact_switch_message_
+           && ros::Time::now()
+              < start_time
+                + ros::Duration(CommonConf::kContactSwitchStartupTimeout)) {
+        ros::spinOnce();
+        ros::Duration(0.005).sleep();
+    }
+
+    if (!have_contact_switch_message_)
+    {
+        ROS_WARN("Contact switch message not received within the startup timeout");
+    }
+
     return FcCommsReturns::kReturnOk;
 }
 
@@ -527,7 +543,7 @@ void CommonFcComms<T>::calibrateAccelerometer()
     }
     else
     {
-        ROS_WARN("Skipping accleration calibration, there are no landing gear messages");
+        ROS_WARN("Skipping accleration calibration. No contact switch msg");
     }
 }
 
