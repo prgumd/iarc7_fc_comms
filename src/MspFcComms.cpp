@@ -211,6 +211,25 @@ FcCommsReturns MspFcComms::getAttitude(double (&attitude)[3])
     return status;
 }
 
+FcCommsReturns MspFcComms::calibrateAccelerometer()
+{
+    MSP_ACC_CALIBRATION cal;
+    FcCommsReturns status = sendMessage(cal);
+
+    // Need to block for a predetermined period here as the flight controller
+    // goes unresponsive.
+    ros::Rate rate(30);
+    ros::Time start_time = ros::Time::now();
+    while(ros::ok() && (ros::Time::now() - start_time
+                        < ros::Duration(FcCommsMspConf::kAccelCalibWaitPeriod)))
+    {
+        ros::spinOnce();
+        rate.sleep();
+    }
+
+    return status;
+}
+
 // Disconnect from FC, should be called before destructor.
 FcCommsReturns MspFcComms::disconnect()
 {

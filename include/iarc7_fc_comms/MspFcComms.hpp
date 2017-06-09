@@ -44,6 +44,10 @@ namespace FcComms
         FcCommsReturns  __attribute__((warn_unused_result))
             isArmed(bool& armed);
 
+        // Calibrate the accelerometer
+        FcCommsReturns  __attribute__((warn_unused_result))
+            calibrateAccelerometer();
+
         // Find out if the FC is in failsafe
         FcCommsReturns  __attribute__((warn_unused_result))
             isFailsafe(bool& failsafe);
@@ -98,7 +102,6 @@ namespace FcComms
         FcCommsReturns  __attribute__((warn_unused_result))
             getRawRC(
                 uint16_t (&rc_values)[FcCommsMspConf::kMspReceivableChannels]);
-
 
         // Send the rc commands to the FC using the member array of rc values.
         FcCommsReturns  __attribute__((warn_unused_result))
