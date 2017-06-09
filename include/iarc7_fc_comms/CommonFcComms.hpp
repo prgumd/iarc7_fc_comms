@@ -535,13 +535,16 @@ void CommonFcComms<T>::calibrateAccelerometer()
             && last_contact_switch_message_ptr_->left)
         {
             FcCommsReturns status{FcCommsReturns::kReturnOk};
-
             status = flightControlImpl_.calibrateAccelerometer();
 
             if (status != FcCommsReturns::kReturnOk)
             {
                 ROS_ERROR("iarc7_fc_comms: Failed to calibrate accelerometer");
             }
+        }
+        else
+        {
+            ROS_WARN("Can't calibrate accelerometer, not on ground");
         }
     }
     else
