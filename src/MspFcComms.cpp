@@ -213,6 +213,7 @@ FcCommsReturns MspFcComms::getAttitude(double (&attitude)[3])
 
 FcCommsReturns MspFcComms::calibrateAccelerometer()
 {
+    ROS_INFO("Starting accelerometer calibration");
     MSP_ACC_CALIBRATION cal;
     FcCommsReturns status = sendMessage(cal);
 
@@ -226,6 +227,8 @@ FcCommsReturns MspFcComms::calibrateAccelerometer()
         ros::spinOnce();
         rate.sleep();
     }
+
+    ROS_INFO("Done accelerometer calibration");
 
     return status;
 }
