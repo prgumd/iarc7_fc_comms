@@ -547,7 +547,7 @@ void CommonFcComms<T>::calibrateAccelerometer()
     if(calibrate_accelerometer_)
     {
         if(last_contact_switch_message_ptr_->header.stamp
-           < ros::Time::now() - valid_contact_switch_message_delay_)
+           > ros::Time::now() - valid_contact_switch_message_delay_)
         {
             if(last_contact_switch_message_ptr_->front
                 && last_contact_switch_message_ptr_->back
@@ -570,7 +570,7 @@ void CommonFcComms<T>::calibrateAccelerometer()
         }
         else
         {
-            ROS_ERROR("Skipping accleration calibration. No contact switch message within a reasonable time range");
+            ROS_ERROR("Skipping accleration calibration. No contact message within timeout");
         }
     }
 }
