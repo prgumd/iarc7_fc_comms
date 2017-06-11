@@ -20,6 +20,8 @@ namespace FcComms
 
         static constexpr double kConnectWaitPeriod{0.2};
 
+        static constexpr double kAccelCalibWaitPeriod{2.0};
+
         static constexpr double kMspWaitForReplyTimeout{0.2};
 
         static constexpr char const * const kHardwareId

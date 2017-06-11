@@ -242,6 +242,26 @@ namespace FcComms
             }
         }
     };
+
+    struct MSP_ACC_CALIBRATION
+    {
+        // Default constructor an destructor
+        MSP_ACC_CALIBRATION() = default;
+        ~MSP_ACC_CALIBRATION() = default;
+
+        // Don't allow the copy constructor or assignment.
+        MSP_ACC_CALIBRATION(const MSP_ACC_CALIBRATION& rhs) = delete;
+        MSP_ACC_CALIBRATION& operator=(const MSP_ACC_CALIBRATION& rhs) = delete;
+
+        static const uint8_t message_id{205};
+        static const uint8_t data_length{0};
+
+        static constexpr char const * const string_name{"MSP_ACC_CALIBRATION"};
+
+        const uint8_t send[FcCommsMspConf::kMspMaxDataLength]={};
+
+        uint8_t response[FcCommsMspConf::kMspMaxDataLength];
+    };
 }
 
 #endif

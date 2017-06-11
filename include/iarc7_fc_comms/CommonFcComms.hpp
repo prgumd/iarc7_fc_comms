@@ -20,6 +20,7 @@
 #include "iarc7_msgs/BoolStamped.h"
 #include "iarc7_msgs/FlightControllerStatus.h"
 #include "iarc7_msgs/Float64Stamped.h"
+#include "iarc7_msgs/LandingGearContactsStamped.h"
 #include "iarc7_msgs/OrientationThrottleStamped.h"
 #include <ros_utils/ParamUtils.hpp>
 
@@ -61,6 +62,9 @@ namespace FcComms{
         // Update information from flight controller and send information
         void update();
 
+        // Calibrate the FC's accelerometer
+        void calibrateAccelerometer();
+
         // Update flight controller armed information
         void updateArmed();
 
@@ -97,6 +101,11 @@ namespace FcComms{
             have_new_direction_command_message_ = true;
         }
 
+        inline void contactSwitchMessageHandler(
+                const iarc7_msgs::LandingGearContactsStamped::ConstPtr& message) {
+            last_contact_switch_message_ptr_ = message;
+        }
+
         bool uavArmServiceHandler(
                 std_srvs::SetBool::Request& request,
                 std_srvs::SetBool::Response& response);
@@ -124,13 +133,17 @@ namespace FcComms{
         // Subscriber for uav_angle values
         ros::Subscriber uav_angle_subscriber;
 
-        // Subscriber for uav_throttle valuess
-        ros::Subscriber uav_throttle_subscriber;
+        // Subscriber for the contact switch values
+        ros::Subscriber contact_switch_subscriber;
 
         // Service to arm copter
         ros::ServiceServer uav_arm_service;
 
         iarc7_msgs::OrientationThrottleStamped::ConstPtr last_direction_command_message_ptr_;
+
+        iarc7_msgs::LandingGearContactsStamped::ConstPtr last_contact_switch_message_ptr_;
+
+        ros::Duration valid_contact_switch_message_delay_;
 
         bool have_new_direction_command_message_ = false;
 
@@ -151,6 +164,8 @@ namespace FcComms{
 
         bool initial_heading_as_offset_ = false;
 
+        bool calibrate_accelerometer_ = false;
+
         double initial_heading_offset_ = std::nan("");
 
     };
@@ -169,9 +184,11 @@ imu_publisher(),
 flightControlImpl_(),
 transform_broadcaster_(),
 uav_angle_subscriber(),
-uav_throttle_subscriber(),
+contact_switch_subscriber(),
 uav_arm_service(),
-last_direction_command_message_ptr_()
+last_direction_command_message_ptr_(),
+last_contact_switch_message_ptr_(),
+valid_contact_switch_message_delay_()
 {
     if (ros_utils::ParamUtils::getParam<bool>(private_nh_, "publish_fc_battery")) {
         sequenced_updates.push_back(&CommonFcComms::updateBattery);
@@ -180,6 +197,14 @@ last_direction_command_message_ptr_()
     initial_heading_as_offset_ = 
                             ros_utils::ParamUtils::getParam<bool>(
                             private_nh_, "initial_heading_as_offset");
+
+    calibrate_accelerometer_ = 
+                            ros_utils::ParamUtils::getParam<bool>(
+                            private_nh_, "calibrate_accelerometer");
+
+    valid_contact_switch_message_delay_ = ros::Duration(
+                        ros_utils::ParamUtils::getParam<double>(
+                        private_nh_, "valid_contact_switch_message_delay"));
 }
 
 template<class T>
@@ -236,7 +261,37 @@ FcCommsReturns CommonFcComms<T>::init()
         return FcCommsReturns::kReturnError;
     }
 
+    contact_switch_subscriber = nh_.subscribe("landing_gear_contact_switches",
+                                         100,
+                                         &CommonFcComms::contactSwitchMessageHandler,
+                                         this);
+
     ROS_INFO("FC Comms registered and subscribed to topics");
+
+    if (calibrate_accelerometer_)
+    {
+        const ros::Time start_time = ros::Time::now();
+        while (ros::ok()
+               && last_contact_switch_message_ptr_ == nullptr
+               && ros::Time::now()
+                  < start_time
+                    + ros::Duration(CommonConf::kContactSwitchStartupTimeout)) {
+            ros::spinOnce();
+            ros::Duration(0.005).sleep();
+        }
+
+        if (last_contact_switch_message_ptr_ == nullptr)
+        {
+            ROS_ERROR("Contact switch message not received within the startup timeout");
+            return FcCommsReturns::kReturnError;
+        }
+        else
+        {
+            ROS_INFO("FC Comms received initial contact switch message succesfully");
+        }
+
+    }
+
     return FcCommsReturns::kReturnOk;
 }
 
@@ -478,10 +533,46 @@ void CommonFcComms<T>::reconnect() {
     if(status == FcCommsReturns::kReturnOk)
     {
         ROS_INFO("iarc7_fc_comms: Succesful reconnection to flight controller");
+        calibrateAccelerometer();
     }
     else
     {
         ROS_ERROR("iarc7_fc_comms: Failed reconnection to flight controller");
+    }
+}
+
+// Send direction message to flight controller
+template<class T>
+void CommonFcComms<T>::calibrateAccelerometer()
+{
+    if(calibrate_accelerometer_)
+    {
+        if(last_contact_switch_message_ptr_->header.stamp
+           > ros::Time::now() - valid_contact_switch_message_delay_)
+        {
+            if(last_contact_switch_message_ptr_->front
+                && last_contact_switch_message_ptr_->back
+                && last_contact_switch_message_ptr_->right
+                && last_contact_switch_message_ptr_->left)
+            {
+                FcCommsReturns status{FcCommsReturns::kReturnOk};
+
+                status = flightControlImpl_.calibrateAccelerometer();
+
+                if (status != FcCommsReturns::kReturnOk)
+                {
+                    ROS_ERROR("iarc7_fc_comms: Failed to calibrate accelerometer");
+                }
+            }
+            else
+            {
+                ROS_WARN("Can't calibrate accelerometer, not on ground");
+            }
+        }
+        else
+        {
+            ROS_ERROR("Skipping accleration calibration. No contact message within timeout");
+        }
     }
 }
 
