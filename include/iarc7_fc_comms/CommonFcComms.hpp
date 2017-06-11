@@ -143,6 +143,8 @@ namespace FcComms{
 
         iarc7_msgs::LandingGearContactsStamped::ConstPtr last_contact_switch_message_ptr_;
 
+        ros::Duration valid_contact_switch_message_delay_;
+
         bool have_new_direction_command_message_ = false;
 
         typedef void (CommonFcComms::*CommonFcCommsMemFn)();
@@ -161,6 +163,8 @@ namespace FcComms{
         bool fc_auto_pilot_enabled_ = false;
 
         bool initial_heading_as_offset_ = false;
+
+        bool calibrate_accelerometer_ = false;
 
         double initial_heading_offset_ = std::nan("");
 
@@ -183,7 +187,8 @@ uav_angle_subscriber(),
 contact_switch_subscriber(),
 uav_arm_service(),
 last_direction_command_message_ptr_(),
-last_contact_switch_message_ptr_()
+last_contact_switch_message_ptr_(),
+valid_contact_switch_message_delay_()
 {
     if (ros_utils::ParamUtils::getParam<bool>(private_nh_, "publish_fc_battery")) {
         sequenced_updates.push_back(&CommonFcComms::updateBattery);
@@ -192,6 +197,14 @@ last_contact_switch_message_ptr_()
     initial_heading_as_offset_ = 
                             ros_utils::ParamUtils::getParam<bool>(
                             private_nh_, "initial_heading_as_offset");
+
+    calibrate_accelerometer_ = 
+                            ros_utils::ParamUtils::getParam<bool>(
+                            private_nh_, "calibrate_accelerometer");
+
+    valid_contact_switch_message_delay_ = ros::Duration(
+                        ros_utils::ParamUtils::getParam<double>(
+                        private_nh_, "valid_contact_switch_message_delay"));
 }
 
 template<class T>
@@ -255,19 +268,23 @@ FcCommsReturns CommonFcComms<T>::init()
 
     ROS_INFO("FC Comms registered and subscribed to topics");
 
-    const ros::Time start_time = ros::Time::now();
-    while (ros::ok()
-           && last_contact_switch_message_ptr_ == nullptr
-           && ros::Time::now()
-              < start_time
-                + ros::Duration(CommonConf::kContactSwitchStartupTimeout)) {
-        ros::spinOnce();
-        ros::Duration(0.005).sleep();
-    }
-
-    if (last_contact_switch_message_ptr_ == nullptr)
+    if (calibrate_accelerometer_)
     {
-        ROS_WARN("Contact switch message not received within the startup timeout");
+        const ros::Time start_time = ros::Time::now();
+        while (ros::ok()
+               && last_contact_switch_message_ptr_ == nullptr
+               && ros::Time::now()
+                  < start_time
+                    + ros::Duration(CommonConf::kContactSwitchStartupTimeout)) {
+            ros::spinOnce();
+            ros::Duration(0.005).sleep();
+        }
+
+        if (last_contact_switch_message_ptr_ == nullptr)
+        {
+            ROS_ERROR("Contact switch message not received within the startup timeout");
+            return FcCommsReturns::kReturnError;
+        }
     }
     else
     {
@@ -527,29 +544,34 @@ void CommonFcComms<T>::reconnect() {
 template<class T>
 void CommonFcComms<T>::calibrateAccelerometer()
 {
-    if(last_contact_switch_message_ptr_ != nullptr)
+    if(calibrate_accelerometer_)
     {
-        if(last_contact_switch_message_ptr_->front
-            && last_contact_switch_message_ptr_->back
-            && last_contact_switch_message_ptr_->right
-            && last_contact_switch_message_ptr_->left)
+        if(last_contact_switch_message_ptr_->header.stamp
+           < ros::Time::now() - valid_contact_switch_message_delay_)
         {
-            FcCommsReturns status{FcCommsReturns::kReturnOk};
-            status = flightControlImpl_.calibrateAccelerometer();
-
-            if (status != FcCommsReturns::kReturnOk)
+            if(last_contact_switch_message_ptr_->front
+                && last_contact_switch_message_ptr_->back
+                && last_contact_switch_message_ptr_->right
+                && last_contact_switch_message_ptr_->left)
             {
-                ROS_ERROR("iarc7_fc_comms: Failed to calibrate accelerometer");
+                FcCommsReturns status{FcCommsReturns::kReturnOk};
+
+                status = flightControlImpl_.calibrateAccelerometer();
+
+                if (status != FcCommsReturns::kReturnOk)
+                {
+                    ROS_ERROR("iarc7_fc_comms: Failed to calibrate accelerometer");
+                }
+            }
+            else
+            {
+                ROS_WARN("Can't calibrate accelerometer, not on ground");
             }
         }
         else
         {
-            ROS_WARN("Can't calibrate accelerometer, not on ground");
+            ROS_ERROR("Skipping accleration calibration. No contact switch message within a reasonable time range");
         }
-    }
-    else
-    {
-        ROS_WARN("Skipping accleration calibration. No contact switch msg");
     }
 }
 
