@@ -222,6 +222,10 @@ CommonFcComms<T>& CommonFcComms<T>::getInstance()
 template<class T>
 FcCommsReturns CommonFcComms<T>::init()
 {
+    ROS_INFO("fc_comms_msp: Forming bond with safety client");
+    ROS_ASSERT_MSG(safety_client_.formBond(), "fc_comms_msp: Could not form bond with safety client");
+    ROS_INFO("fc_comms_msp: Formed bond with safety client");
+
     uav_arm_service = nh_.advertiseService("uav_arm",
                                        &CommonFcComms::uavArmServiceHandler,
                                        this);
@@ -229,8 +233,6 @@ FcCommsReturns CommonFcComms<T>::init()
         ROS_ERROR("CommonFcComms failed to create arming service");
         return FcCommsReturns::kReturnError;
     }
-
-    ROS_ASSERT_MSG(safety_client_.formBond(), "fc_comms_msp: Could not form bond with safety client");
 
     battery_publisher = nh_.advertise<iarc7_msgs::Float64Stamped>("fc_battery", 50);
     if (!battery_publisher) {
