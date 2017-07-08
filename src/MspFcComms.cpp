@@ -110,9 +110,9 @@ FcCommsReturns MspFcComms::setArm(bool arm)
 FcCommsReturns MspFcComms::postArm(bool arm)
 {
     // Set flight mode to angle
-    translated_rc_values_[5] = (arm == true) ?
-        FcCommsMspConf::kMspStickEndPoint :
-        FcCommsMspConf::kMspStickStartPoint;
+    //translated_rc_values_[5] = (arm == true) ?
+    //    FcCommsMspConf::kMspStickEndPoint :
+    //    FcCommsMspConf::kMspStickStartPoint;
 
     // Set the throttle to the min throttle or off
     uint16_t min_throttle = CommonConf::kMinAllowedThrottle
