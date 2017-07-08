@@ -104,6 +104,11 @@ FcCommsReturns MspFcComms::setArm(bool arm)
         FcCommsMspConf::kMspStickEndPoint :
         FcCommsMspConf::kMspStickStartPoint;
 
+    return sendRc();
+}
+
+FcCommsReturns MspFcComms::postArm(bool arm)
+{
     // Set flight mode to angle
     translated_rc_values_[5] = (arm == true) ?
         FcCommsMspConf::kMspStickEndPoint :
