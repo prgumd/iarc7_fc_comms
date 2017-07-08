@@ -45,7 +45,7 @@ struct CommonConf
     static constexpr const char* kTfChildName{"quad"};
 
     // Variance of acceleration measurements (in m/2^2)
-    static constexpr const double kAccelerationVariance[3] = {0.0001, 0.0001, 0.0001};
+    static constexpr const double kAccelerationVariance[3] = {0.09, 0.09, 0.09};
 };
 
 } // namespace FcComms
