@@ -100,8 +100,22 @@ FcCommsReturns MspFcComms::processDirectionCommandMessage(
 FcCommsReturns MspFcComms::setArm(bool arm)
 {
     // Try to arm, Values over 1800 arm the FC
-    translated_rc_values_[4] = (arm == true) ? 2000 : 1000;
-    translated_rc_values_[5] = (arm == true) ? 2000 : 1000;
+    translated_rc_values_[4] = (arm == true) ?
+        FcCommsMspConf::kMspStickEndPoint :
+        FcCommsMspConf::kMspStickStartPoint;
+
+    // Set flight mode to angle
+    translated_rc_values_[5] = (arm == true) ?
+        FcCommsMspConf::kMspStickEndPoint :
+        FcCommsMspConf::kMspStickStartPoint;
+
+    // Set the throttle to the min throttle or off
+    uint16_t min_throttle = CommonConf::kMinAllowedThrottle
+                            * FcCommsMspConf::kMspThrottleScale
+                            + FcCommsMspConf::kMspStickStartPoint;
+    translated_rc_values_[2] = (arm == true) ?
+        min_throttle : FcCommsMspConf::kMspStickStartPoint;
+
     return sendRc();
 }
 
