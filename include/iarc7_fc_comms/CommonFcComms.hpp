@@ -21,6 +21,7 @@
 #include "iarc7_msgs/FlightControllerStatus.h"
 #include "iarc7_msgs/Float64Stamped.h"
 #include "iarc7_msgs/LandingGearContactsStamped.h"
+#include "iarc7_msgs/OrientationAnglesStamped.h"
 #include "iarc7_msgs/OrientationThrottleStamped.h"
 #include <ros_utils/ParamUtils.hpp>
 
@@ -90,7 +91,7 @@ namespace FcComms{
         void publishFcStatus();
 
         // Send out the transform for the level_quad to quad
-        void sendOrientationTransform(double (&attitude)[3]);
+        void sendOrientation(double (&attitude)[3]);
 
         // Send out the accelerations from the FC
         void sendAccelerations(double (&accelerations)[3]);
@@ -123,12 +124,10 @@ namespace FcComms{
         ros::Publisher battery_publisher;
         ros::Publisher status_publisher;
         ros::Publisher imu_publisher;
+        ros::Publisher orientation_pub_;
 
         // Just use the default constructor
         T flightControlImpl_;
-
-        // Broadcaster to send transforms with
-        tf2_ros::TransformBroadcaster transform_broadcaster_;
 
         // Subscriber for uav_angle values
         ros::Subscriber uav_angle_subscriber;
@@ -181,8 +180,8 @@ safety_client_(nh_, "fc_comms_msp"),
 battery_publisher(),
 status_publisher(),
 imu_publisher(),
+orientation_pub_(),
 flightControlImpl_(),
-transform_broadcaster_(),
 uav_angle_subscriber(),
 contact_switch_subscriber(),
 uav_arm_service(),
@@ -251,6 +250,13 @@ FcCommsReturns CommonFcComms<T>::init()
             "fc_imu", 50);
     if (!imu_publisher) {
         ROS_ERROR("CommonFcComms failed to create imu publisher");
+        return FcCommsReturns::kReturnError;
+    }
+
+    orientation_pub_ = nh_.advertise<iarc7_msgs::OrientationAnglesStamped>(
+            "fc_orientation", 50);
+    if (!orientation_pub_) {
+        ROS_ERROR("CommonFcComms failed to create orientation publisher");
         return FcCommsReturns::kReturnError;
     }
 
@@ -468,7 +474,7 @@ void CommonFcComms<T>::updateAttitude()
                   attitude[1],
                   attitude[2]);
 
-        sendOrientationTransform(attitude);
+        sendOrientation(attitude);
     }
 }
 
@@ -653,24 +659,17 @@ void CommonFcComms<T>::publishFcStatus()
 
 // Send out the transform for the level_quad to quad
 template<class T>
-void CommonFcComms<T>::sendOrientationTransform(double (&attitude)[3])
+void CommonFcComms<T>::sendOrientation(double (&attitude)[3])
 {
-  geometry_msgs::TransformStamped transformStamped;
+    iarc7_msgs::OrientationAnglesStamped orientation_msg;
 
-  transformStamped.header.stamp = ros::Time::now();
-  transformStamped.header.frame_id = CommonConf::kTfParentName;
-  transformStamped.child_frame_id = CommonConf::kTfChildName;
+    orientation_msg.header.stamp = ros::Time::now();
 
-  tf2::Quaternion q;
+    orientation_msg.data.roll = attitude[0];
+    orientation_msg.data.pitch = attitude[1];
+    orientation_msg.data.yaw = attitude[2];
 
-  // This assumes the values are returned in the form roll pitch yaw in radians
-  q.setRPY(attitude[0], attitude[1], attitude[2]);
-  transformStamped.transform.rotation.x = q.x();
-  transformStamped.transform.rotation.y = q.y();
-  transformStamped.transform.rotation.z = q.z();
-  transformStamped.transform.rotation.w = q.w();
-
-  transform_broadcaster_.sendTransform(transformStamped);
+    orientation_pub_.publish(orientation_msg);
 }
 
 // Send out the accelerations from the quad FC
