@@ -44,6 +44,10 @@ namespace FcComms
         FcCommsReturns  __attribute__((warn_unused_result))
             isArmed(bool& armed);
 
+        // Perform any post arming actions
+        FcCommsReturns  __attribute__((warn_unused_result))
+            postArm(bool arm);
+
         // Calibrate the accelerometer
         FcCommsReturns  __attribute__((warn_unused_result))
             calibrateAccelerometer();
