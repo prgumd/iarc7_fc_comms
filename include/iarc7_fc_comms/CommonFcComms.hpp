@@ -14,7 +14,6 @@
 
 #include <ros/ros.h>
 #include <tf2/LinearMath/Quaternion.h>
-#include <tf2_ros/transform_broadcaster.h>
 
 #include "iarc7_safety/SafetyClient.hpp"
 #include "iarc7_msgs/BoolStamped.h"
@@ -25,7 +24,6 @@
 #include "iarc7_msgs/OrientationThrottleStamped.h"
 #include <ros_utils/ParamUtils.hpp>
 
-#include <geometry_msgs/TransformStamped.h>
 #include <sensor_msgs/Imu.h>
 #include "std_srvs/SetBool.h"
 
@@ -90,7 +88,7 @@ namespace FcComms{
         // Publish the flight controller status
         void publishFcStatus();
 
-        // Send out the transform for the level_quad to quad
+        // Send out the orientation data for the quad
         void sendOrientation(double (&attitude)[3]);
 
         // Send out the accelerations from the FC
@@ -657,7 +655,7 @@ void CommonFcComms<T>::publishFcStatus()
     status_publisher.publish(status_message);
 }
 
-// Send out the transform for the level_quad to quad
+// Send out the orientation date from the quad
 template<class T>
 void CommonFcComms<T>::sendOrientation(double (&attitude)[3])
 {

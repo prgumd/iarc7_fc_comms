@@ -49,14 +49,10 @@
   <build_depend>message_generation</build_depend>
   <build_depend>serial</build_depend>
   <build_depend>ros_utils</build_depend>
-  <build_depend>tf2</build_depend>
-  <build_depend>tf2_ros</build_depend>
   <build_depend>iarc7_safety</build_depend>
   <run_depend>iarc7_msgs</run_depend>
   <run_depend>std_srvs</run_depend>
   <run_depend>message_runtime</run_depend>
-  <run_depend>tf2</run_depend>
-  <run_depend>tf2_ros</run_depend>
   <run_depend>ros_utils</run_depend>
 
 
