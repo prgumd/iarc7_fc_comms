@@ -664,7 +664,7 @@ void CommonFcComms<T>::sendOrientation(double (&attitude)[3])
     orientation_msg.header.stamp = ros::Time::now();
 
     orientation_msg.data.roll = attitude[0];
-    orientation_msg.data.pitch = attitude[1];
+    orientation_msg.data.pitch = -1 * attitude[1];
     orientation_msg.data.yaw = attitude[2];
 
     orientation_pub_.publish(orientation_msg);
