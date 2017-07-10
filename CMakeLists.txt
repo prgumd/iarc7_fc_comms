@@ -14,8 +14,6 @@ find_package(catkin REQUIRED COMPONENTS
   ros_utils
   message_generation
   serial
-  tf2
-  tf2_ros
   iarc7_safety
   sensor_msgs
 )
