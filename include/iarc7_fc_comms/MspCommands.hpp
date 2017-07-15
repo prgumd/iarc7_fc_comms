@@ -241,6 +241,25 @@ namespace FcComms
                 acc_values[i] = 9.8 * static_cast<double>(*temp)/(512.0 * 4.0);
             }
         }
+
+        // Returns the Gyro values
+        void getGyro(double (&gyro_values)[3])
+        {
+            // Jetson runs in little endian mode and the FC
+            // Receives data in big endian
+            // Jetson sends back 9 IMU data integers. 16bits each.
+            for(uint32_t i = 0; i < 3; i++)
+            {
+                // Unpack the value
+                uint16_t unpacked_value = response[6+i*2] | (response[6+(i*2)+1] << 8);
+
+                // Reinterpret as signed
+                int16_t* temp = reinterpret_cast<int16_t*>(&unpacked_value);
+
+                // Convert to doubles
+                gyro_values[i] = static_cast<double>(*temp) * (1.0/4.096) * (M_PI / 180.0);
+            }
+        }
     };
 
     struct MSP_ACC_CALIBRATION
