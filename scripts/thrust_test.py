@@ -4,7 +4,7 @@ import rospy
 from std_msgs.msg import Float64
 from iarc7_msgs.msg import Float64Stamped
 from iarc7_msgs.msg import OrientationThrottleStamped
-from std_srvs.srv import SetBool
+from iarc7_msgs.srv import Arm
 
 import numpy as np
 
@@ -28,9 +28,9 @@ rospy.Subscriber('/fc_battery', Float64Stamped, battery_callback)
 pub = rospy.Publisher('/uav_direction_command', OrientationThrottleStamped, queue_size=5)
 rospy.logerr('Publisher created')
 rospy.wait_for_service('/uav_arm')
-arm_service = rospy.ServiceProxy('/uav_arm', SetBool)
+arm_service = rospy.ServiceProxy('/uav_arm', Arm)
 rospy.logerr('Service ready')
-assert arm_service(True)
+assert arm_service(True, True, False)
 rospy.logerr('Motors armed')
 
 command = OrientationThrottleStamped()

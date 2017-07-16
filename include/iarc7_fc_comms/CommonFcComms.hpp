@@ -16,6 +16,7 @@
 #include <tf2/LinearMath/Quaternion.h>
 
 #include "iarc7_safety/SafetyClient.hpp"
+#include "iarc7_msgs/Arm.h"
 #include "iarc7_msgs/BoolStamped.h"
 #include "iarc7_msgs/FlightControllerStatus.h"
 #include "iarc7_msgs/Float64Stamped.h"
@@ -106,8 +107,8 @@ namespace FcComms{
         }
 
         bool uavArmServiceHandler(
-                std_srvs::SetBool::Request& request,
-                std_srvs::SetBool::Response& response);
+                iarc7_msgs::Arm::Request& request,
+                iarc7_msgs::Arm::Response& response);
 
         // This node's handle
         ros::NodeHandle nh_;
@@ -322,8 +323,8 @@ FcCommsReturns CommonFcComms<T>::run()
 // Attempt to arm the flight controller
 template<class T>
 bool CommonFcComms<T>::uavArmServiceHandler(
-                std_srvs::SetBool::Request& request,
-                std_srvs::SetBool::Response& response)
+                iarc7_msgs::Arm::Request& request,
+                iarc7_msgs::Arm::Response& response)
 {
     ROS_INFO("Uav arm service handler called");
 
@@ -363,7 +364,9 @@ bool CommonFcComms<T>::uavArmServiceHandler(
             {
                 ROS_INFO("FC arm or disarm set succesfully");
 
-                status = flightControlImpl_.postArm(request.data);
+                status = flightControlImpl_.postArm(request.data,
+                                                    request.set_mode,
+                                                    request.angle);
                 if(status != FcCommsReturns::kReturnOk) {
                     ROS_ERROR("iarc7_fc_comms: Post arm action failed");
                     return false;
