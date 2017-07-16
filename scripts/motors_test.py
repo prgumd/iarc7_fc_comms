@@ -8,8 +8,7 @@ from iarc7_safety.SafetyClient import SafetyClient
 
 from iarc7_msgs.msg import OrientationThrottleStamped
 from iarc7_msgs.msg import BoolStamped
-
-from std_srvs.srv import SetBool
+from iarc7_msgs.srv import Arm
 
 from geometry_msgs.msg import TwistStamped
 
@@ -17,7 +16,7 @@ if __name__ == '__main__':
     rospy.init_node('waypoints_test', anonymous=True)
 
     rospy.wait_for_service('uav_arm')
-    arm_service = rospy.ServiceProxy('uav_arm', SetBool)
+    arm_service = rospy.ServiceProxy('uav_arm', Arm)
     rospy.logerr('done waiting')
     safety_client = SafetyClient('motors_test')
     safety_client.form_bond()
@@ -28,7 +27,7 @@ if __name__ == '__main__':
     while armed == False :
         try:
             rospy.logerr('Trying to arm')
-            armed = arm_service(True)
+            armed = arm_service(True, True, False)
         except rospy.ServiceException as exc:
             rospy.logerr('Could not arm: ' + str(exc))
     rospy.logerr('Armed')
