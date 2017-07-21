@@ -257,7 +257,8 @@ namespace FcComms
                 int16_t* temp = reinterpret_cast<int16_t*>(&unpacked_value);
 
                 // Convert to doubles
-                gyro_values[i] = static_cast<double>(*temp) * (1.0/4.096) * (M_PI / 180.0);
+                gyro_values[i] = static_cast<double>(*temp) * (1.0/16.4) * (M_PI / 180.0);
+
             }
         }
     };
