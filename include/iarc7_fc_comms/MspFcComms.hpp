@@ -80,9 +80,9 @@ namespace FcComms
         FcCommsReturns  __attribute__((warn_unused_result))
             printRawRC();
 
-        // Get the acceleration in m/s^2
+        // Get the acceleration in m/s^2 and the angular velocities in rad/s
         FcCommsReturns  __attribute__((warn_unused_result))
-            getAccelerations(double (&accelerations)[3]);
+            getIMU(double (&accelerations)[3], double (&angular_velocities)[3]);
 
         FcCommsReturns  __attribute__((warn_unused_result))
             isAutoPilotAllowed(bool& allowed);

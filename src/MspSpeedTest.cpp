@@ -83,7 +83,8 @@ int main(int argc, char **argv)
         for(int i = 0; i < 100; i++)
         {
             double accelerations[3];
-            status = comms.getAccelerations(accelerations);
+            double angular_velocities[3];
+            status = comms.getIMU(accelerations, angular_velocities);
 
             if(status != FcCommsReturns::kReturnOk)
             {

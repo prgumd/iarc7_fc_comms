@@ -93,7 +93,7 @@ namespace FcComms{
         void sendOrientation(double (&attitude)[3]);
 
         // Send out the accelerations from the FC
-        void sendAccelerations(double (&accelerations)[3]);
+        void sendIMU(double (&accelerations)[3], double (&angular_velocities)[3]);
 
         inline void uavDirectionCommandMessageHandler(
                 const iarc7_msgs::OrientationThrottleStamped::ConstPtr& message) {
@@ -506,9 +506,11 @@ void CommonFcComms<T>::updateAccelerations()
 {
     FcCommsReturns status{FcCommsReturns::kReturnOk};
     double accelerations[3];
-    status = flightControlImpl_.getAccelerations(accelerations);
+    double angular_velocities[3];
+
+    status = flightControlImpl_.getIMU(accelerations, angular_velocities);
     if (status != FcCommsReturns::kReturnOk) {
-        ROS_ERROR("iarc7_fc_comms: Failed to retrieve accelerations from flight controller");
+        ROS_ERROR("iarc7_fc_comms: Failed to retrieve IMU info from flight controller");
     }
     else
     {
@@ -517,7 +519,12 @@ void CommonFcComms<T>::updateAccelerations()
                   accelerations[1],
                   accelerations[2]);
 
-        sendAccelerations(accelerations);
+        ROS_DEBUG("iarc7_fc_comms: Angular Velocities: %f %f %f",
+                  angular_velocities[0],
+                  angular_velocities[1],
+                  angular_velocities[2]);
+
+        sendIMU(accelerations, angular_velocities);
     }
 }
 
@@ -675,7 +682,7 @@ void CommonFcComms<T>::sendOrientation(double (&attitude)[3])
 
 // Send out the accelerations from the quad FC
 template<class T>
-void CommonFcComms<T>::sendAccelerations(double (&accelerations)[3])
+void CommonFcComms<T>::sendIMU(double (&accelerations)[3], double (&angular_velocities)[3])
 {
   sensor_msgs::Imu imu;
 
@@ -685,6 +692,10 @@ void CommonFcComms<T>::sendAccelerations(double (&accelerations)[3])
   imu.linear_acceleration.x = accelerations[0];
   imu.linear_acceleration.y = accelerations[1];
   imu.linear_acceleration.z = accelerations[2];
+
+  imu.angular_velocity.x = angular_velocities[0];
+  imu.angular_velocity.y = angular_velocities[1];
+  imu.angular_velocity.z = angular_velocities[2];
 
   imu.orientation_covariance[0] = -1;
   imu.angular_velocity_covariance[0] = -1;

@@ -154,12 +154,14 @@ FcCommsReturns MspFcComms::printRawRC()
     return status;
 }
 
-FcCommsReturns MspFcComms::getAccelerations(double (&accelerations)[3])
+// Get the acceleration in m/s^2 and the angular velocities in rad/s
+FcCommsReturns MspFcComms::getIMU(double (&accelerations)[3], double (&angular_velocities)[3])
 {
     MSP_RAW_IMU msp_imu;
     FcCommsReturns status = sendMessage(msp_imu);
     if (status == FcCommsReturns::kReturnOk) {
         msp_imu.getAcc(accelerations);
+        msp_imu.getGyro(angular_velocities);
     }
     return status;
 }
