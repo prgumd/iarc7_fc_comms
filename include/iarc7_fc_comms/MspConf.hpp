@@ -68,7 +68,7 @@ namespace FcComms
         static constexpr const double kMspStickStartPoint{1000.0};
         static constexpr const double kMspStickMidPoint{1500.0};
         static constexpr const double kMspStickEndPoint{2000.0};
-        static constexpr const double kMspMaxAngleRadians{40.0 * M_PI / 180.0};
+        static constexpr const double kMspMaxAngleRadians{55.0 * M_PI / 180.0};
         static constexpr const double kMspPitchScale{(kMspStickEndPoint - kMspStickMidPoint)/kMspMaxAngleRadians};
         static constexpr const double kMspRollScale{kMspPitchScale};
         static constexpr const double kMspYawScale{0.0};// Should be filled in with values based on (kMspMax-kMspMidpoint) / max rate of rotation
