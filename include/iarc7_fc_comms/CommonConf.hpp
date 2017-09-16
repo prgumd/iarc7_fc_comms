@@ -27,7 +27,7 @@ enum class FcCommsStatus
 
 struct CommonConf
 {
-    static constexpr const float kFcSensorsUpdateRateHz{100};
+    static constexpr const float kFcSensorsUpdateRateHz{400};
 
     static constexpr const double kMaxArmDelay = 0.1;
     static constexpr const double kContactSwitchStartupTimeout = 5.0;
@@ -45,7 +45,7 @@ struct CommonConf
     static constexpr const char* kTfChildName{"quad"};
 
     // Variance of acceleration measurements (in m/2^2)
-    static constexpr const double kAccelerationVariance[3] = {4.0, 4.0, 4.0};
+    static constexpr const double kAccelerationVariance[3] = {6.0, 6.0, 6.0};
 };
 
 } // namespace FcComms
