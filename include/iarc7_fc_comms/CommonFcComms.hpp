@@ -364,9 +364,7 @@ bool CommonFcComms<T>::uavArmServiceHandler(
             {
                 ROS_INFO("FC arm or disarm set succesfully");
 
-                status = flightControlImpl_.postArm(request.data,
-                                                    request.set_mode,
-                                                    request.angle);
+                status = flightControlImpl_.postArm(request.data);
                 if(status != FcCommsReturns::kReturnOk) {
                     ROS_ERROR("iarc7_fc_comms: Post arm action failed");
                     return false;
