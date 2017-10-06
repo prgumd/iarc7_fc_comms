@@ -185,6 +185,9 @@ FcCommsReturns MspFcComms::isAutoPilotAllowed(bool& allowed)
 FcCommsReturns MspFcComms::sendRc()
 {
     MSP_SET_RAW_RC msp_rc;
+
+    // Make sure we are in angle mode
+    translated_rc_values_[5] = FcCommsMspConf::kMspStickEndPoint;
     msp_rc.packRc(translated_rc_values_);
     return sendMessage(msp_rc);
 }
