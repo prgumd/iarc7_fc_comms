@@ -46,7 +46,7 @@ namespace FcComms
 
         // Perform any post arming actions
         FcCommsReturns  __attribute__((warn_unused_result))
-            postArm(bool arm, bool set_mode, bool angle);
+            postArm(bool arm);
 
         // Calibrate the accelerometer
         FcCommsReturns  __attribute__((warn_unused_result))
