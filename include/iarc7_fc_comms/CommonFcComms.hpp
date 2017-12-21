@@ -143,6 +143,8 @@ namespace FcComms{
 
         ros::Duration valid_contact_switch_message_delay_;
 
+        ros::Duration orientation_timestamp_offset_;
+
         bool have_new_direction_command_message_ = false;
 
         typedef void (CommonFcComms::*CommonFcCommsMemFn)();
@@ -186,9 +188,11 @@ contact_switch_subscriber(),
 uav_arm_service(),
 last_direction_command_message_ptr_(),
 last_contact_switch_message_ptr_(),
-valid_contact_switch_message_delay_()
+valid_contact_switch_message_delay_(),
+orientation_timestamp_offset_()
 {
-    if (ros_utils::ParamUtils::getParam<bool>(private_nh_, "publish_fc_battery")) {
+    if (ros_utils::ParamUtils::getParam<bool>(private_nh_,
+                                              "publish_fc_battery")) {
         sequenced_updates.push_back(&CommonFcComms::updateBattery);
     }
 
@@ -203,6 +207,11 @@ valid_contact_switch_message_delay_()
     valid_contact_switch_message_delay_ = ros::Duration(
                         ros_utils::ParamUtils::getParam<double>(
                         private_nh_, "valid_contact_switch_message_delay"));
+
+    orientation_timestamp_offset_ = ros::Duration(
+                                  ros_utils::ParamUtils::getParam<double>(
+                                  private_nh_,
+                                  "imu_orientation_timestamp_offset"));
 }
 
 template<class T>
@@ -669,7 +678,7 @@ void CommonFcComms<T>::sendOrientation(double (&attitude)[3])
 {
     iarc7_msgs::OrientationAnglesStamped orientation_msg;
 
-    orientation_msg.header.stamp = ros::Time::now();
+    orientation_msg.header.stamp = ros::Time::now() + orientation_timestamp_offset_;
 
     orientation_msg.data.roll = attitude[0];
     orientation_msg.data.pitch = -1 * attitude[1];

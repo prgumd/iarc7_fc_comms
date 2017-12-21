@@ -10,3 +10,6 @@ calibrate_accelerometer: true
 
 # Timeout for determining validity of contact switch messages
 valid_contact_switch_message_delay: 0.2
+
+# Offset for timestamping orientation messages due to filter delay on the FC
+imu_orientation_timestamp_offset: -0.075
