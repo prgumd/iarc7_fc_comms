@@ -90,12 +90,13 @@ class CrazyflieFcComms:
         # Initialize the low-level drivers (don't list the debug drivers)
         cflib.crtp.init_drivers(enable_debug_driver=False)
 
-        # Use first Crazyflie found
-        rospy.loginfo('Crazyflie FC Comms scanning for Crazyflies')
-        crazyflies = cflib.crtp.scan_interfaces()
-        if len(crazyflies) == 0:
-            rospy.logerr('Crazyflie FC Comms could not find Crazyflie. Exiting.')
-            return
+        while True:
+            # Use first Crazyflie found
+            rospy.loginfo('Crazyflie FC Comms scanning for Crazyflies')
+            crazyflies = cflib.crtp.scan_interfaces()
+            if len(crazyflies) != 0:
+                break
+            rospy.logerr('Crazyflie FC Comms could not find Crazyflie. Trying again.')
 
         uri = crazyflies[0][0]
 
@@ -120,7 +121,7 @@ class CrazyflieFcComms:
         self._cf.param.set_value('kalman.resetEstimation', '0')
         time.sleep(2)
 
-        fast_log_stab   = LogConfig(name='high_update_rate', period_in_ms=10)
+        fast_log_stab   = LogConfig(name='high_update_rate', period_in_ms=20)
         medium_log_stab = LogConfig(name='medium_update_rate', period_in_ms=30)
         slow_log_stab   = LogConfig(name='slow_update_rate', period_in_ms=100)
 
@@ -229,7 +230,7 @@ class CrazyflieFcComms:
             if logconf.name == 'high_update_rate':
                 imu = Imu()
 
-                imu.header.stamp = stamp
+                imu.header.stamp = stamp - rospy.Duration.from_sec(0.180)
                 imu.header.frame_id = 'quad'
 
                 imu.linear_acceleration.x = data['acc.x'] * 9.8;
@@ -246,7 +247,7 @@ class CrazyflieFcComms:
                 self._imu_publisher.publish(imu)
 
                 orientation = OrientationAnglesStamped()
-                orientation.header.stamp = stamp
+                orientation.header.stamp = stamp - rospy.Duration.from_sec(0.120)
                 orientation.data.roll = data['stabilizer.roll'] * math.pi / 180.0
                 orientation.data.pitch = data['stabilizer.pitch'] * math.pi / 180.0
                 orientation.data.yaw = -1.0 * data['stabilizer.yaw'] * math.pi / 180.0
@@ -259,7 +260,7 @@ class CrazyflieFcComms:
                 twist.twist.twist.linear.y = data['kalman_states.vy']
                 twist.twist.twist.linear.z = 0.0
 
-                variance = 0.05
+                variance = 0.01
                 twist.twist.covariance[0] = variance
                 twist.twist.covariance[7] = variance
 
