@@ -45,6 +45,7 @@ class CrazyflieFcComms:
         self._cf = None
         self._commands_allowed = True
         self._uav_command = None
+        self._vbat = None
 
         # safety 
         self._safety_client = SafetyClient('fc_comms_crazyflie')
@@ -188,6 +189,7 @@ class CrazyflieFcComms:
                 raise IARCFatalSafetyException('Safety Client is fatal active')
 
             if self._safety_client.is_safety_active():
+                rospy.logwarn_throttle(1.0, 'Crazyflie FC Comms activated safety response')
                 self._commands_allowed = False
                 self._cf.commander.send_setpoint(0, 0, 0, 0)
 
@@ -211,12 +213,23 @@ class CrazyflieFcComms:
     # Always return success because making sure the crazyflie is
     # armed correctly isn't critical
     def _arm_service_handler(self, arm_request):
-        if self._armed != arm_request.data:
+        if self._armed and not arm_request.data:
             self._cf.commander.send_setpoint(0, 0, 0, 0)
+            self._armed = False
+            return ArmResponse(success=True)
 
-        self._armed = arm_request.data
-
+        elif not self._armed and arm_request.data:
+            if self._vbat < 3.45 or self._vbat is None:
+                rospy.logerr('Crazyflie FC Comms refusing to arm, battery to low or not received')
+                return ArmResponse(success=False)
+            else:
+                self._cf.commander.send_setpoint(0, 0, 0, 0)
+                self._armed = True
+                return ArmResponse(success=True)
+        
+        # State is the same as it was before. So simply return true.
         return ArmResponse(success=True)
+
 
     def _uav_command_handler(self, data):
         self._uav_command = data
@@ -294,6 +307,7 @@ class CrazyflieFcComms:
                 battery = Float64Stamped()
                 battery.header.stamp = stamp
                 battery.data = data['pm.vbat']
+                self._vbat = data['pm.vbat']
                 self._battery_publisher.publish(battery)
             else:
                 rospy.logerr('Crazyflie FC Comms received message block with unkown name')
@@ -311,7 +325,7 @@ class CrazyflieFcComms:
 
 
     def _receive_crazyflie_error(self, logconf, msg):
-        rospy.logerr('Craziefly FC Comms error: {}, {}'.format(logconf.name, msg))
+        rospy.logerr('Crazyflie FC Comms error: {}, {}'.format(logconf.name, msg))
 
     def _connection_made(self, uri):
         rospy.loginfo('Crazyflie FC Comms connected to {}'.format(uri))
