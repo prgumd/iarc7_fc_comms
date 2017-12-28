@@ -46,6 +46,7 @@ class CrazyflieFcComms:
         self._commands_allowed = True
         self._uav_command = None
         self._vbat = None
+        self._crash_detected = False
 
         # safety 
         self._safety_client = SafetyClient('fc_comms_crazyflie')
@@ -193,6 +194,11 @@ class CrazyflieFcComms:
                 self._commands_allowed = False
                 self._cf.commander.send_setpoint(0, 0, 0, 0)
 
+            if self._crash_detected:
+                rospy.logwarn_throttle(1.0, 'Crazyflie FC Comms detected crash, shut down motors')
+                self._commands_allowed = False
+                self._cf.commander.send_setpoint(0, 0, 0, 0)
+
             if self._armed and self._commands_allowed:
                 if self._uav_command is None:
                     # Keep the connection alive
@@ -252,7 +258,7 @@ class CrazyflieFcComms:
                 imu.orientation_covariance[0] = -1;
                 imu.angular_velocity_covariance[0] = -1;
 
-                variance = 6.0
+                variance = 4.0
                 imu.linear_acceleration_covariance[0] = variance;
                 imu.linear_acceleration_covariance[4] = variance;
                 imu.linear_acceleration_covariance[8] = variance;
@@ -265,6 +271,10 @@ class CrazyflieFcComms:
                 orientation.data.pitch = data['stabilizer.pitch'] * math.pi / 180.0
                 orientation.data.yaw = -1.0 * data['stabilizer.yaw'] * math.pi / 180.0
                 self._orientation_pub.publish(orientation)
+
+                if abs(orientation.data.roll) > 1.0 or abs(orientation.data.pitch) > 1.0:
+                    self._crash_detected = True
+
             elif logconf.name == 'medium_update_rate':
                 twist = TwistWithCovarianceStamped()
                 twist.header.stamp = stamp
@@ -273,7 +283,7 @@ class CrazyflieFcComms:
                 twist.twist.twist.linear.y = data['kalman_states.vy']
                 twist.twist.twist.linear.z = 0.0
 
-                variance = 0.01
+                variance = 0.03
                 twist.twist.covariance[0] = variance
                 twist.twist.covariance[7] = variance
 
