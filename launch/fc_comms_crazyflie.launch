@@ -1,10 +1,13 @@
 <launch>
     <arg name="bond_id_namespace" default="safety_bonds" />
+    <arg name="battery_topic" default="fc_battery" />
 
     <node name="fc_comms_crazyflie" pkg="iarc7_fc_comms" type="crazyflie_fc_comms.py" output="screen">
         <rosparam command="load"
             file="$(find iarc7_fc_comms)/params/fc_comms.yaml" />
+        <remap from="fc_battery" to="/$(arg battery_topic)" />
     </node>
-    <param name="$(arg bond_id_namespace)/fc_comms_msp/form_bond"
+
+    <param name="$(arg bond_id_namespace)/fc_comms_crazyflie/form_bond"
         value="true" />
 </launch>

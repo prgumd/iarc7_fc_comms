@@ -14,7 +14,7 @@ from geometry_msgs.msg import TwistWithCovarianceStamped
 
 from iarc7_msgs.msg import (OrientationThrottleStamped, FlightControllerStatus,
                             Float64Stamped, FlightControllerStatus,
-                            OrientationAnglesStamped)
+                            OrientationAnglesStamped, LandingGearContactsStamped)
 
 from iarc7_msgs.srv import Arm, ArmResponse
 
@@ -46,7 +46,7 @@ class CrazyflieFcComms:
         self._commands_allowed = False
 
         # safety 
-        self._safety_client = SafetyClient('fc_comms_msp')
+        self._safety_client = SafetyClient('fc_comms_crazyflie')
 
         # Publishers for FC sensors
         self._battery_publisher = rospy.Publisher('fc_battery',
@@ -69,6 +69,10 @@ class CrazyflieFcComms:
         self._range_pub = rospy.Publisher('short_distance_lidar',
                                           Range,
                                           queue_size=5)
+
+        self._switch_pub = rospy.Publisher('landing_gear_contact_switches',
+                                            LandingGearContactsStamped,
+                                            queue_size=5)
 
         # Subscriber for uav_angle values
         self._uav_angle_subscriber = rospy.Subscriber(
@@ -115,17 +119,9 @@ class CrazyflieFcComms:
         self._cf.param.set_value('kalman.resetEstimation', '0')
         time.sleep(2)
 
-        rospy.loginfo('Crazyflie FC Comms trying to form bond')
-
-        # forming bond with safety client
-        #if not self._safety_client.form_bond():
-        #    raise IARCFatalSafetyException('Motion Coordinator could not form bond with safety client')
-
-        rospy.loginfo('Crazyflie FC Comms done forming bond')
-
         fast_log_stab   = LogConfig(name='high_update_rate', period_in_ms=10)
         medium_log_stab = LogConfig(name='medium_update_rate', period_in_ms=30)
-        slow_log_stab   = LogConfig(name='slow_update_rate', period_in_ms=200)
+        slow_log_stab   = LogConfig(name='slow_update_rate', period_in_ms=100)
 
         fast_log_stab.add_variable('acc.x', 'float')
         fast_log_stab.add_variable('acc.y', 'float')
@@ -170,6 +166,14 @@ class CrazyflieFcComms:
         # that might have something to do with arming
         self._cf.commander.send_setpoint(0, 0, 0, 0)
 
+        rospy.loginfo('Crazyflie FC Comms trying to form bond')
+
+        # forming bond with safety client
+        if not self._safety_client.form_bond():
+            raise IARCFatalSafetyException('Crazyflie FC Comms could not form bond with safety client')
+
+        rospy.loginfo('Crazyflie FC Comms done forming bond')
+
         # Publish status of fc periodically
         rate = rospy.Rate(20)
         while not rospy.is_shutdown() and self._connected:
@@ -205,11 +209,9 @@ class CrazyflieFcComms:
     def _uav_command_handler(self, data):
         if self._commands_allowed:
             self._cf.commander.send_setpoint(data.roll * 180.0 / math.pi,
-                                             -1.0 * data.pitch * 180.0 / math.pi,
-                                             data.yaw * 180.0 / math.pi,
+                                             data.pitch * 180.0 / math.pi,
+                                             -1.0 * data.yaw * 180.0 / math.pi,
                                              max(20000.0, data.thrust * 65535.0))
-        else:
-            rospy.logwarn('Crazyflie FC Comms received uav command when commands not allowed')
 
     def _receive_crazyflie_data(self, timestamp, data, logconf):
         # Catch all exceptions because otherwise the crazyflie
@@ -223,9 +225,9 @@ class CrazyflieFcComms:
                 imu.header.stamp = stamp
                 imu.header.frame_id = 'quad'
 
-                imu.linear_acceleration.x = data['acc.x'];
-                imu.linear_acceleration.y = data['acc.y'];
-                imu.linear_acceleration.z = data['acc.z'];
+                imu.linear_acceleration.x = data['acc.x'] * 9.8;
+                imu.linear_acceleration.y = data['acc.y'] * 9.8;
+                imu.linear_acceleration.z = data['acc.z'] * 9.8;
                 imu.orientation_covariance[0] = -1;
                 imu.angular_velocity_covariance[0] = -1;
 
@@ -239,8 +241,8 @@ class CrazyflieFcComms:
                 orientation = OrientationAnglesStamped()
                 orientation.header.stamp = stamp
                 orientation.data.roll = data['stabilizer.roll'] * math.pi / 180.0
-                orientation.data.pitch = -1.0 * data['stabilizer.pitch'] * math.pi / 180.0
-                orientation.data.yaw = data['stabilizer.yaw'] * math.pi / 180.0
+                orientation.data.pitch = data['stabilizer.pitch'] * math.pi / 180.0
+                orientation.data.yaw = -1.0 * data['stabilizer.yaw'] * math.pi / 180.0
                 self._orientation_pub.publish(orientation)
             elif logconf.name == 'medium_update_rate':
                 twist = TwistWithCovarianceStamped()
@@ -260,15 +262,25 @@ class CrazyflieFcComms:
                 range_msg.header.stamp = stamp
 
                 range_msg.radiation_type = Range.INFRARED
-                range_msg.header.frame_id =  '/short_distance_lidar'
+                range_msg.header.frame_id = '/short_distance_lidar'
 
                 range_msg.field_of_view = 0.3
                 range_msg.min_range = 0.01
-                range_msg.max_range = 0.800
+                range_msg.max_range = 1.2
 
                 range_msg.range = data['range.zrange'] / 1000.0
 
                 self._range_pub.publish(range_msg)
+
+                switch_msg = LandingGearContactsStamped()
+                switch_msg.header.stamp = stamp
+                pressed = data['range.zrange'] < 40
+                switch_msg.front = pressed
+                switch_msg.back = pressed
+                switch_msg.left = pressed
+                switch_msg.right = pressed
+
+                self._switch_pub.publish(switch_msg)
 
             elif logconf.name == 'slow_update_rate':
                 battery = Float64Stamped()
