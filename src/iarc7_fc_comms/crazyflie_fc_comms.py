@@ -43,7 +43,8 @@ class CrazyflieFcComms:
         self._timestamp_offset = None
         self._armed = False
         self._cf = None
-        self._commands_allowed = False
+        self._commands_allowed = True
+        self._uav_command = None
 
         # safety 
         self._safety_client = SafetyClient('fc_comms_crazyflie')
@@ -162,10 +163,6 @@ class CrazyflieFcComms:
 
         rospy.loginfo("Crazyflie FC Comms finished configured logs")
 
-        # There is an undocumented lock feature
-        # that might have something to do with arming
-        self._cf.commander.send_setpoint(0, 0, 0, 0)
-
         rospy.loginfo('Crazyflie FC Comms trying to form bond')
 
         # forming bond with safety client
@@ -174,8 +171,8 @@ class CrazyflieFcComms:
 
         rospy.loginfo('Crazyflie FC Comms done forming bond')
 
-        # Publish status of fc periodically
-        rate = rospy.Rate(20)
+        # Update at the same rate as low level motion
+        rate = rospy.Rate(60)
         while not rospy.is_shutdown() and self._connected:
             status = FlightControllerStatus()
             status.header.stamp = rospy.Time.now()
@@ -193,6 +190,17 @@ class CrazyflieFcComms:
                 self._commands_allowed = False
                 self._cf.commander.send_setpoint(0, 0, 0, 0)
 
+            if self._armed and self._commands_allowed:
+                if self._uav_command is None:
+                    # Keep the connection alive
+                    self._cf.commander.send_setpoint(0, 0, 0, 0)
+                else:
+                    throttle = max(20000.0, self._uav_command.throttle * 65535.0)
+                    rospy.loginfo('throttle {}'.format(throttle))
+                    self._cf.commander.send_setpoint(data.data.roll * 180.0 / math.pi,
+                                                     data.data.pitch * 180.0 / math.pi,
+                                                    -1.0 * data.data.yaw * 180.0 / math.pi,
+                                                     throttle)
             rate.sleep()
 
         self._cf.commander.send_setpoint(0, 0, 0, 0)
@@ -200,18 +208,18 @@ class CrazyflieFcComms:
         time.sleep(0.1)
         self._cf.close_link()
 
-    # Always return success because the crazyflie
-    # has some undocumented form of arming that we aren't supporting
+    # Always return success because making sure the crazyflie is
+    # armed correctly isn't critical
     def _arm_service_handler(self, arm_request):
+        if self._armed != arm_request.data:
+            self._cf.commander.send_setpoint(0, 0, 0, 0)
+
         self._armed = arm_request.data
+
         return ArmResponse(success=True)
 
     def _uav_command_handler(self, data):
-        if self._commands_allowed:
-            self._cf.commander.send_setpoint(data.roll * 180.0 / math.pi,
-                                             data.pitch * 180.0 / math.pi,
-                                             -1.0 * data.yaw * 180.0 / math.pi,
-                                             max(20000.0, data.thrust * 65535.0))
+        self._uav_command = data
 
     def _receive_crazyflie_data(self, timestamp, data, logconf):
         # Catch all exceptions because otherwise the crazyflie
@@ -274,7 +282,7 @@ class CrazyflieFcComms:
 
                 switch_msg = LandingGearContactsStamped()
                 switch_msg.header.stamp = stamp
-                pressed = data['range.zrange'] < 40
+                pressed = data['range.zrange'] < 50
                 switch_msg.front = pressed
                 switch_msg.back = pressed
                 switch_msg.left = pressed
@@ -295,7 +303,7 @@ class CrazyflieFcComms:
 
 
     def _calculate_timestamp(self, timestamp):
-        if self._timestamp_offset == None:
+        if self._timestamp_offset is None:
             self._timestamp_offset = (rospy.Time.now(), timestamp)
 
         stamp = self._timestamp_offset[0] + rospy.Duration.from_sec((float(timestamp - self._timestamp_offset[1])/1000.0) - 0.025)
