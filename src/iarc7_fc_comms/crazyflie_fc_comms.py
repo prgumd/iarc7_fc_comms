@@ -21,7 +21,7 @@ from iarc7_msgs.srv import Arm, ArmResponse
 from iarc7_safety.SafetyClient import SafetyClient
 from iarc7_safety.iarc_safety_exception import IARCFatalSafetyException
 
-from sensor_msgs.msg import Imu
+from sensor_msgs.msg import (Imu, Range)
 
 import logging
 import time
@@ -37,6 +37,14 @@ logging.basicConfig(level=logging.ERROR)
 class CrazyflieFcComms:
 
     def __init__(self):
+
+        self._uav_command = None
+        self._connected = False
+        self._timestamp_offset = None
+        self._armed = False
+        self._cf = None
+        self._commands_allowed = False
+
         # safety 
         self._safety_client = SafetyClient('fc_comms_msp')
 
@@ -54,9 +62,13 @@ class CrazyflieFcComms:
                                                  OrientationAnglesStamped,
                                                  queue_size=5)
 
-        self._velocity_pub = rospy.Publisher('fc_velocity',
+        self._velocity_pub = rospy.Publisher('optical_flow_estimator/twist',
                                               TwistWithCovarianceStamped,
                                               queue_size=5)
+
+        self._range_pub = rospy.Publisher('short_distance_lidar',
+                                          Range,
+                                          queue_size=5)
 
         # Subscriber for uav_angle values
         self._uav_angle_subscriber = rospy.Subscriber(
@@ -68,13 +80,6 @@ class CrazyflieFcComms:
         self._uav_arm_service = rospy.Service('uav_arm',
                                         Arm,
                                         self._arm_service_handler)
-
-        self._uav_command = None
-        self._connected = False
-        self._timestamp_offset = None
-        self._armed = False
-        self._cf = None
-        self._commands_allowed = False
 
     def run(self):
         # Initialize the low-level drivers (don't list the debug drivers)
@@ -133,6 +138,7 @@ class CrazyflieFcComms:
         # and provide position estimates
         medium_log_stab.add_variable('kalman_states.vx', 'float')
         medium_log_stab.add_variable('kalman_states.vy', 'float')
+        medium_log_stab.add_variable('range.zrange', 'uint16_t')
 
         slow_log_stab.add_variable('pm.vbat', 'float')
 
@@ -249,6 +255,21 @@ class CrazyflieFcComms:
                 twist.twist.covariance[7] = variance
 
                 self._velocity_pub.publish(twist)
+
+                range_msg = Range()
+                range_msg.header.stamp = stamp
+
+                range_msg.radiation_type = Range.INFRARED
+                range_msg.header.frame_id =  '/short_distance_lidar'
+
+                range_msg.field_of_view = 0.3
+                range_msg.min_range = 0.01
+                range_msg.max_range = 0.800
+
+                range_msg.range = data['range.zrange'] / 1000.0
+
+                self._range_pub.publish(range_msg)
+
             elif logconf.name == 'slow_update_rate':
                 battery = Float64Stamped()
                 battery.header.stamp = stamp
