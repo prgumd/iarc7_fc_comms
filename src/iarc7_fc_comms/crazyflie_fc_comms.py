@@ -21,7 +21,7 @@ from iarc7_msgs.srv import Arm, ArmResponse
 from iarc7_safety.SafetyClient import SafetyClient
 from iarc7_safety.iarc_safety_exception import IARCFatalSafetyException
 
-from sensor_msgs.msg import (Imu, Range)
+from sensor_msgs.msg import (Imu, Range, MagneticField)
 
 import logging
 import time
@@ -76,6 +76,10 @@ class CrazyflieFcComms:
         self._switch_pub = rospy.Publisher('landing_gear_contact_switches',
                                             LandingGearContactsStamped,
                                             queue_size=5)
+
+        self._mag_pub = rospy.Publisher('fc_mag',
+                                        MagneticField,
+                                        queue_size=5)
 
         # Subscriber for uav_angle values
         self._uav_angle_subscriber = rospy.Subscriber(
@@ -141,6 +145,9 @@ class CrazyflieFcComms:
         medium_log_stab.add_variable('range.zrange', 'uint16_t')
 
         slow_log_stab.add_variable('pm.vbat', 'float')
+        slow_log_stab.add_variable('mag.x', 'float')
+        slow_log_stab.add_variable('mag.y', 'float')
+        slow_log_stab.add_variable('mag.z', 'float')
 
         try:
             self._cf.log.add_config(fast_log_stab)
@@ -319,6 +326,14 @@ class CrazyflieFcComms:
                 battery.data = data['pm.vbat']
                 self._vbat = data['pm.vbat']
                 self._battery_publisher.publish(battery)
+
+                mag = MagneticField()
+                mag.header.stamp = stamp
+                mag.magnetic_field.x = data['mag.x']
+                mag.magnetic_field.y = data['mag.y']
+                mag.magnetic_field.z = data['mag.z']
+                self._mag_pub.publish(mag)
+
             else:
                 rospy.logerr('Crazyflie FC Comms received message block with unkown name')
         except Exception as e:
