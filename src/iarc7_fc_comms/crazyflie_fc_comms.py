@@ -232,7 +232,7 @@ class CrazyflieFcComms:
             return ArmResponse(success=True)
 
         elif not self._armed and arm_request.data:
-            if self._vbat < 3.45 or self._vbat is None:
+            if self._vbat < 3.55 or self._vbat is None:
                 rospy.logerr('Crazyflie FC Comms refusing to arm, battery to low or not received')
                 return ArmResponse(success=False)
             else:
@@ -259,13 +259,13 @@ class CrazyflieFcComms:
                 imu.header.stamp = stamp - rospy.Duration.from_sec(0.180)
                 imu.header.frame_id = 'quad'
 
-                imu.linear_acceleration.x = data['acc.x'] * 9.8;
-                imu.linear_acceleration.y = data['acc.y'] * 9.8;
-                imu.linear_acceleration.z = data['acc.z'] * 9.8;
+                imu.linear_acceleration.x = data['acc.x'] * 9.81;
+                imu.linear_acceleration.y = data['acc.y'] * 9.81;
+                imu.linear_acceleration.z = data['acc.z'] * 9.81;
                 imu.orientation_covariance[0] = -1;
                 imu.angular_velocity_covariance[0] = -1;
 
-                variance = 4.0
+                variance = 6.0
                 imu.linear_acceleration_covariance[0] = variance;
                 imu.linear_acceleration_covariance[4] = variance;
                 imu.linear_acceleration_covariance[8] = variance;
@@ -276,10 +276,14 @@ class CrazyflieFcComms:
                 orientation.header.stamp = stamp - rospy.Duration.from_sec(0.120)
                 orientation.data.roll = data['stabilizer.roll'] * math.pi / 180.0
                 orientation.data.pitch = data['stabilizer.pitch'] * math.pi / 180.0
-                orientation.data.yaw = -1.0 * data['stabilizer.yaw'] * math.pi / 180.0
+
+                # Zero out the yaw for now. Crazyflie has a problem with yaw calculation
+                # and having correct yaw is not critical for this target yet.
+                orientation.data.yaw = -0.0 * data['stabilizer.yaw'] * math.pi / 180.0
                 self._orientation_pub.publish(orientation)
 
                 if abs(orientation.data.roll) > 1.0 or abs(orientation.data.pitch) > 1.0:
+                    rospy.logwarn('Crazyflie FC Comms maximimum attitude angle exceeded')
                     self._crash_detected = True
 
             elif logconf.name == 'medium_update_rate':
@@ -290,23 +294,27 @@ class CrazyflieFcComms:
                 twist.twist.twist.linear.y = data['kalman_states.vy']
                 twist.twist.twist.linear.z = 0.0
 
-                variance = 0.03
+                variance = 0.005
                 twist.twist.covariance[0] = variance
                 twist.twist.covariance[7] = variance
 
                 self._velocity_pub.publish(twist)
 
                 range_msg = Range()
-                range_msg.header.stamp = stamp
+                range_msg.header.stamp = stamp - rospy.Duration.from_sec(0.230)
 
                 range_msg.radiation_type = Range.INFRARED
                 range_msg.header.frame_id = '/short_distance_lidar'
 
                 range_msg.field_of_view = 0.3
                 range_msg.min_range = 0.01
-                range_msg.max_range = 1.2
+                range_msg.max_range = 1.6
 
                 range_msg.range = data['range.zrange'] / 1000.0
+
+                if range_msg.range > 2.0:
+                    rospy.logwarn('Crazyflie FC Comms maximimum height exceeded')
+                    self._crash_detected = True
 
                 self._range_pub.publish(range_msg)
 
