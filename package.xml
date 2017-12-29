@@ -54,8 +54,6 @@
   <run_depend>std_srvs</run_depend>
   <run_depend>message_runtime</run_depend>
   <run_depend>ros_utils</run_depend>
-  <run_depend>cflib</run_depend>
-
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>
