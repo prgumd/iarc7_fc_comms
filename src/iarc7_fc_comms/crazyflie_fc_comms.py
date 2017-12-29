@@ -256,7 +256,7 @@ class CrazyflieFcComms:
             if logconf.name == 'high_update_rate':
                 imu = Imu()
 
-                imu.header.stamp = stamp - rospy.Duration.from_sec(0.180)
+                imu.header.stamp = stamp
                 imu.header.frame_id = 'quad'
 
                 imu.linear_acceleration.x = data['acc.x'] * 9.81;
@@ -273,7 +273,7 @@ class CrazyflieFcComms:
                 self._imu_publisher.publish(imu)
 
                 orientation = OrientationAnglesStamped()
-                orientation.header.stamp = stamp - rospy.Duration.from_sec(0.120)
+                orientation.header.stamp = stamp
                 orientation.data.roll = data['stabilizer.roll'] * math.pi / 180.0
                 orientation.data.pitch = data['stabilizer.pitch'] * math.pi / 180.0
 
@@ -288,20 +288,20 @@ class CrazyflieFcComms:
 
             elif logconf.name == 'medium_update_rate':
                 twist = TwistWithCovarianceStamped()
-                twist.header.stamp = stamp
+                twist.header.stamp = stamp - rospy.Duration.from_sec(0.020)
                 twist.header.frame_id = 'level_quad'
                 twist.twist.twist.linear.x = data['kalman_states.vx']
                 twist.twist.twist.linear.y = data['kalman_states.vy']
                 twist.twist.twist.linear.z = 0.0
 
-                variance = 0.005
+                variance = 0.0001
                 twist.twist.covariance[0] = variance
                 twist.twist.covariance[7] = variance
 
                 self._velocity_pub.publish(twist)
 
                 range_msg = Range()
-                range_msg.header.stamp = stamp - rospy.Duration.from_sec(0.230)
+                range_msg.header.stamp = stamp - rospy.Duration.from_sec(0.050)
 
                 range_msg.radiation_type = Range.INFRARED
                 range_msg.header.frame_id = '/short_distance_lidar'
