@@ -30,7 +30,7 @@ rospy.logerr('Publisher created')
 rospy.wait_for_service('/uav_arm')
 arm_service = rospy.ServiceProxy('/uav_arm', Arm)
 rospy.logerr('Service ready')
-assert arm_service(True, True, False)
+assert arm_service(True)
 rospy.logerr('Motors armed')
 
 command = OrientationThrottleStamped()
