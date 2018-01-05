@@ -14,6 +14,11 @@
 #include "CommonConf.hpp"
 #include "MspConf.hpp"
 
+#include <geometry_msgs/PoseStamped.h>
+#include <mavros_msgs/CommandBool.h>
+#include <mavros_msgs/SetMode.h>
+#include <mavros_msgs/State.h>
+
 #include "iarc7_msgs/BoolStamped.h"
 #include "iarc7_msgs/Float64Stamped.h"
 #include "iarc7_msgs/OrientationThrottleStamped.h"
@@ -24,7 +29,7 @@ namespace FcComms
     class PX4FcComms
     {
     public:
-        PX4FcComms();
+        PX4FcComms(ros::NodeHandle& nh);
         ~PX4FcComms() = default;
 
         // Used to find and connect to the serial port
@@ -91,8 +96,27 @@ namespace FcComms
         PX4FcComms(const PX4FcComms& rhs) = delete;
         PX4FcComms& operator=(const PX4FcComms& rhs) = delete;
 
-        // State of communication with flight controller
-        FcCommsStatus fc_comms_status_ = FcCommsStatus::kDisconnected;
+        void mavrosStateCallback(const mavros_msgs::State::ConstPtr& msg);
+
+        ros::NodeHandle nh_;
+
+        // Subscriber for the drones state
+        ros::Subscriber mavros_state_sub_;
+
+        // Pose publisher
+        ros::Publisher mavros_local_pos_pub_;
+
+        // Mavros arming service
+        ros::ServiceClient mavros_arming_client_;
+
+        // Mavros arming mode service
+        ros::ServiceClient mavros_set_mode_client_;
+
+        // Current fc comms state
+        FcCommsStatus fc_comms_status_;
+
+        // Current mavros state
+        mavros_msgs::State mavros_current_state_;
 
         // FC implementation specific to hold intermediate rc values
         uint16_t translated_rc_values_[8]{0};

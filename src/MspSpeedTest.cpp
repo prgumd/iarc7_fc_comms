@@ -23,7 +23,7 @@ int main(int argc, char **argv)
 
     ROS_INFO("FC_comms begin");
 
-    MspFcComms comms;
+    MspFcComms comms(nh);
 
     FcCommsReturns status = comms.connect();
 

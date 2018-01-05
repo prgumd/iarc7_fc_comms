@@ -14,14 +14,39 @@
 #include "iarc7_fc_comms/CommonConf.hpp"
 #include "iarc7_fc_comms/MspConf.hpp"
 
-#include "iarc7_msgs/Float64Stamped.h"
-#include "iarc7_msgs/OrientationThrottleStamped.h"
-
 namespace FcComms {
 
-PX4FcComms::PX4FcComms()
+PX4FcComms::PX4FcComms(ros::NodeHandle& nh)
+    : nh_(nh),
+      fc_comms_status_(),
+      mavros_current_state_()
 {
-    // Empty, nothing to do for now.
+    mavros_state_sub_ = nh.subscribe<mavros_msgs::State>(
+        "mavros/state", 10, &PX4FcComms::mavrosStateCallback, this);
+    mavros_local_pos_pub_ = nh.advertise<geometry_msgs::PoseStamped>(
+        "mavros/setpoint_position/local", 10);
+    mavros_arming_client_ = nh.serviceClient<mavros_msgs::CommandBool>(
+        "mavros/cmd/arming");
+    mavros_set_mode_client_ = nh.serviceClient<mavros_msgs::SetMode>(
+        "mavros/set_mode");
+}
+
+void PX4FcComms::mavrosStateCallback(const mavros_msgs::State::ConstPtr& msg){
+    mavros_current_state_ = *msg;
+
+    if(mavros_current_state_.connected) {
+        fc_comms_status_ = FcCommsStatus::kConnected;
+    }
+    else
+    {
+        // Don't set to disconnected if currently connecting
+        // the connect() function set fc_comms_status_ to connecting
+        // and it shouldn't be overwritten
+        if(fc_comms_status_ != FcCommsStatus::kConnecting)
+        {
+            fc_comms_status_ = FcCommsStatus::kDisconnected;
+        }
+    }
 }
 
 FcCommsReturns PX4FcComms::safetyLand()
@@ -89,28 +114,32 @@ FcCommsReturns PX4FcComms::getAttitude(double (&)[3])
 
 FcCommsReturns PX4FcComms::calibrateAccelerometer()
 {
+    // PX4 has no need of accelerometer calibration
     return FcCommsReturns::kReturnOk;
 }
 
 // Disconnect from FC, should be called before destructor.
 FcCommsReturns PX4FcComms::disconnect()
 {
-    ROS_INFO("Disconnecting from FC");
-
-    ROS_INFO("Succesfull disconnection from FC");
-
-    fc_comms_status_ = FcCommsStatus::kDisconnected;
+    // Disconnecting from mavros is not supported
     return FcCommsReturns::kReturnOk;
 }
 
 
 FcCommsReturns PX4FcComms::connect()
 {
-    ROS_INFO("FC_Comms beginning connection");
+    ROS_INFO("FC_Comms PX4 beginning connection");
     fc_comms_status_ = FcCommsStatus::kConnecting;
 
-    ROS_INFO("FC_Comms Connected to FC");
-    fc_comms_status_ = FcCommsStatus::kConnected;
+    ros::Rate rate(30);
+    // wait for mavros to indicate connection
+    while(ros::ok() && fc_comms_status_ != FcCommsStatus::kConnected)
+    {
+        ros::spinOnce();
+        rate.sleep();
+    }
+
+    ROS_INFO("FC_Comms PX4 Connected to FC");
 
     return FcCommsReturns::kReturnOk;
 }

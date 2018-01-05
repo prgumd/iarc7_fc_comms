@@ -25,7 +25,7 @@ namespace FcComms
     class MspFcComms
     {
     public:
-        MspFcComms();
+        MspFcComms(ros::NodeHandle&);
         ~MspFcComms() = default;
 
         // Used to find and connect to the serial port

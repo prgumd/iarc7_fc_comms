@@ -23,7 +23,7 @@
 
 namespace FcComms {
 
-MspFcComms::MspFcComms() : fc_serial_()
+MspFcComms::MspFcComms(ros::NodeHandle&) : fc_serial_()
 {
     // Empty, nothing to do for now.
 }
