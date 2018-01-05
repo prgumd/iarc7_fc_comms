@@ -61,6 +61,29 @@ void PX4FcComms::mavrosImuCallback(const sensor_msgs::Imu::ConstPtr& msg){
 
 FcCommsReturns PX4FcComms::safetyLand()
 {
+    // Set a safety throttle unless the throttle is at the minimum throttle
+    double current_throttle = current_orientation_throttle_stamped_.throttle;
+
+    double throttle_output;
+
+    // Purposefully written as an if statement to ease reading since
+    // this is a safety feature
+    if (current_throttle < CommonConf::kMinAllowedThrottle + 0.01)
+    {
+        throttle_output = CommonConf::kMinAllowedThrottle;
+    }
+    else
+    {
+        // Cludge until everything is moved to parameters
+        throttle_output = 0.25;
+    }
+
+    current_orientation_throttle_stamped_.header.stamp = ros::Time::now();
+    current_orientation_throttle_stamped_.data.roll = 0.0;
+    current_orientation_throttle_stamped_.data.pitch = 0.0;
+    current_orientation_throttle_stamped_.throttle = throttle_output;
+    current_orientation_throttle_stamped_.data.yaw = 0.0;
+
     return FcCommsReturns::kReturnOk;
 }
 
