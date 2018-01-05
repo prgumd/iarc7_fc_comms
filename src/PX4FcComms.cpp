@@ -84,17 +84,32 @@ FcCommsReturns PX4FcComms::processDirectionCommandMessage(
     return FcCommsReturns::kReturnOk;
 }
 
-FcCommsReturns PX4FcComms::setArm(bool )
+FcCommsReturns PX4FcComms::setArm(bool arm)
 {
+    mavros_msgs::CommandBool cmd;
+    cmd.request.value = arm;
+
+    if(!mavros_arming_client_.call(cmd))
+    {
+        ROS_ERROR("PX4 FC Comms mavros arm service failed");
+        return FcCommsReturns::kReturnError;
+    }
+
+    if(!cmd.response.success)
+    {
+        ROS_ERROR("PX4 FC Comms mavros could not arm");
+        return FcCommsReturns::kReturnError;
+    }   
+
     return FcCommsReturns::kReturnOk;
 }
 
-FcCommsReturns PX4FcComms::postArm(bool )
+FcCommsReturns PX4FcComms::postArm(bool)
 {
+    // Nothing to do here for PX4
     return FcCommsReturns::kReturnOk;
 }
 
-// Get the acceleration in m/s^2 and the angular velocities in rad/s
 FcCommsReturns PX4FcComms::getIMU(double (&)[3], double(&)[3])
 {
     // This node does not publish the IMU so just return nothing
@@ -102,8 +117,9 @@ FcCommsReturns PX4FcComms::getIMU(double (&)[3], double(&)[3])
     return FcCommsReturns::kReturnError;
 }
 
-FcCommsReturns PX4FcComms::isAutoPilotAllowed(bool& )
+FcCommsReturns PX4FcComms::isAutoPilotAllowed(bool& allowed)
 {
+    allowed = (mavros_current_state_.mode == "OFFBOARD");
     return FcCommsReturns::kReturnOk;
 }
 
@@ -112,8 +128,9 @@ FcCommsReturns PX4FcComms::getBattery(float& )
     return FcCommsReturns::kReturnOk;
 }
 
-FcCommsReturns PX4FcComms::isArmed(bool& )
+FcCommsReturns PX4FcComms::isArmed(bool& armed)
 {
+    armed = mavros_current_state_.armed;
     return FcCommsReturns::kReturnOk;
 }
 
