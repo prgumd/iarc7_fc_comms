@@ -10,9 +10,12 @@
 #include <sstream>
 #include <string>
 
+#include <tf2/LinearMath/Matrix3x3.h>
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+
 #include "iarc7_fc_comms/PX4FcComms.hpp"
 #include "iarc7_fc_comms/CommonConf.hpp"
-#include "iarc7_fc_comms/MspConf.hpp"
 
 namespace FcComms {
 
@@ -22,13 +25,15 @@ PX4FcComms::PX4FcComms(ros::NodeHandle& nh)
       mavros_current_state_()
 {
     mavros_state_sub_ = nh.subscribe<mavros_msgs::State>(
-        "mavros/state", 10, &PX4FcComms::mavrosStateCallback, this);
+        "/mavros/state", 10, &PX4FcComms::mavrosStateCallback, this);
+    mavros_imu_sub_ = nh.subscribe<sensor_msgs::Imu>(
+        "/mavros/imu", 10, &PX4FcComms::mavrosImuCallback, this);
     mavros_local_pos_pub_ = nh.advertise<geometry_msgs::PoseStamped>(
-        "mavros/setpoint_position/local", 10);
+        "/mavros/setpoint_position/local", 10);
     mavros_arming_client_ = nh.serviceClient<mavros_msgs::CommandBool>(
-        "mavros/cmd/arming");
+        "/mavros/cmd/arming");
     mavros_set_mode_client_ = nh.serviceClient<mavros_msgs::SetMode>(
-        "mavros/set_mode");
+        "/mavros/set_mode");
 }
 
 void PX4FcComms::mavrosStateCallback(const mavros_msgs::State::ConstPtr& msg){
@@ -47,6 +52,10 @@ void PX4FcComms::mavrosStateCallback(const mavros_msgs::State::ConstPtr& msg){
             fc_comms_status_ = FcCommsStatus::kDisconnected;
         }
     }
+}
+
+void PX4FcComms::mavrosImuCallback(const sensor_msgs::Imu::ConstPtr& msg){
+    mavros_imu_ = *msg;
 }
 
 FcCommsReturns PX4FcComms::safetyLand()
@@ -88,7 +97,9 @@ FcCommsReturns PX4FcComms::postArm(bool )
 // Get the acceleration in m/s^2 and the angular velocities in rad/s
 FcCommsReturns PX4FcComms::getIMU(double (&)[3], double(&)[3])
 {
-    return FcCommsReturns::kReturnOk;
+    // This node does not publish the IMU so just return nothing
+    ROS_WARN("PX4 Fc Comms called getIMU");
+    return FcCommsReturns::kReturnError;
 }
 
 FcCommsReturns PX4FcComms::isAutoPilotAllowed(bool& )
@@ -107,8 +118,18 @@ FcCommsReturns PX4FcComms::isArmed(bool& )
 }
 
 // Get the attitude of the FC in the order roll pitch yaw in radians
-FcCommsReturns PX4FcComms::getAttitude(double (&)[3])
+FcCommsReturns PX4FcComms::getAttitude(double (&attitude)[3], ros::Time& stamp)
 {
+    tf2::Quaternion current_orientation;
+    tf2::convert(mavros_imu_.orientation,
+                 current_orientation);
+
+    tf2::Matrix3x3 matrix;
+    matrix.setRotation(current_orientation);
+    matrix.getEulerYPR(attitude[0], attitude[1], attitude[2]);
+
+    stamp = mavros_imu_.header.stamp;
+
     return FcCommsReturns::kReturnOk;
 }
 

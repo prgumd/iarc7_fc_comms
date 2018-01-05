@@ -219,7 +219,7 @@ FcCommsReturns MspFcComms::isArmed(bool& armed)
 }
 
 // Get the attitude of the FC in the order roll pitch yaw in radians
-FcCommsReturns MspFcComms::getAttitude(double (&attitude)[3])
+FcCommsReturns MspFcComms::getAttitude(double (&attitude)[3], ros::Time&)
 {
     MSP_ATTITUDE att;
     FcCommsReturns status = sendMessage(att);

@@ -14,14 +14,15 @@
 #include "CommonConf.hpp"
 #include "MspConf.hpp"
 
+#include "iarc7_msgs/BoolStamped.h"
+#include "iarc7_msgs/Float64Stamped.h"
+#include "iarc7_msgs/OrientationThrottleStamped.h"
+
 #include <geometry_msgs/PoseStamped.h>
 #include <mavros_msgs/CommandBool.h>
 #include <mavros_msgs/SetMode.h>
 #include <mavros_msgs/State.h>
-
-#include "iarc7_msgs/BoolStamped.h"
-#include "iarc7_msgs/Float64Stamped.h"
-#include "iarc7_msgs/OrientationThrottleStamped.h"
+#include <sensor_msgs/Imu.h>
 
 namespace FcComms
 {
@@ -66,7 +67,7 @@ namespace FcComms
 
         // Get the attitude of the FC in the order roll pitch yaw
         FcCommsReturns  __attribute__((warn_unused_result))
-            getAttitude(double (&attitude)[3]);
+            getAttitude(double (&attitude)[3], ros::Time& stamp);
 
         // Getter for current connection status
         inline const FcCommsStatus& getConnectionStatus() const
@@ -98,10 +99,15 @@ namespace FcComms
 
         void mavrosStateCallback(const mavros_msgs::State::ConstPtr& msg);
 
+        void mavrosImuCallback(const sensor_msgs::Imu::ConstPtr& msg);
+
         ros::NodeHandle nh_;
 
         // Subscriber for the drones state
         ros::Subscriber mavros_state_sub_;
+
+        // Subscriber for the orientation
+        ros::Subscriber mavros_imu_sub_;
 
         // Pose publisher
         ros::Publisher mavros_local_pos_pub_;
@@ -117,6 +123,9 @@ namespace FcComms
 
         // Current mavros state
         mavros_msgs::State mavros_current_state_;
+
+        // Current imu message
+        sensor_msgs::Imu mavros_imu_;
 
         // FC implementation specific to hold intermediate rc values
         uint16_t translated_rc_values_[8]{0};

@@ -62,7 +62,7 @@ namespace FcComms
 
         // Get the attitude of the FC in the order roll pitch yaw
         FcCommsReturns  __attribute__((warn_unused_result))
-            getAttitude(double (&attitude)[3]);
+            getAttitude(double (&attitude)[3], ros::Time&);
 
         // Getter for current connection status
         inline const FcCommsStatus& getConnectionStatus() const
