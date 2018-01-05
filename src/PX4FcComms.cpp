@@ -22,14 +22,15 @@ namespace FcComms {
 PX4FcComms::PX4FcComms(ros::NodeHandle& nh)
     : nh_(nh),
       fc_comms_status_(),
-      mavros_current_state_()
+      mavros_current_state_(),
+      current_orientation_throttle_stamped_()
 {
     mavros_state_sub_ = nh.subscribe<mavros_msgs::State>(
         "/mavros/state", 10, &PX4FcComms::mavrosStateCallback, this);
     mavros_imu_sub_ = nh.subscribe<sensor_msgs::Imu>(
         "/mavros/imu", 10, &PX4FcComms::mavrosImuCallback, this);
-    mavros_local_pos_pub_ = nh.advertise<geometry_msgs::PoseStamped>(
-        "/mavros/setpoint_position/local", 10);
+    mavros_attitude_pub_ = nh.advertise<mavros_msgs::AttitudeTarget>(
+        "/mavros/setpoint_raw/attitude", 10);
     mavros_arming_client_ = nh.serviceClient<mavros_msgs::CommandBool>(
         "/mavros/cmd/arming");
     mavros_set_mode_client_ = nh.serviceClient<mavros_msgs::SetMode>(
@@ -66,9 +67,9 @@ FcCommsReturns PX4FcComms::safetyLand()
 // Scale the direction commands to rc values and put them in the rc values array.
 // Send the rc values
 FcCommsReturns PX4FcComms::processDirectionCommandMessage(
-    const iarc7_msgs::OrientationThrottleStamped::ConstPtr&)
+    const iarc7_msgs::OrientationThrottleStamped::ConstPtr& message)
 {
-    /*// Constrain inputs
+    // Constrain inputs
     double constrained_roll     = std::max(double(CommonConf::kMinAllowedRoll),
                                            std::min(double(CommonConf::kMaxAllowedRoll),
                                                     message->data.roll));
@@ -80,7 +81,14 @@ FcCommsReturns PX4FcComms::processDirectionCommandMessage(
                                                     message->throttle));
     double constrained_yaw_rate = std::max(double(CommonConf::kMinAllowedYawRate),
                                            std::min(double(CommonConf::kMaxAllowedYawRate),
-                                                    message->data.yaw));*/
+                                                    message->data.yaw));
+
+    current_orientation_throttle_stamped_.header.stamp = message->header.stamp;
+    current_orientation_throttle_stamped_.data.roll = constrained_roll;
+    current_orientation_throttle_stamped_.data.pitch = constrained_pitch;
+    current_orientation_throttle_stamped_.throttle = constrained_throttle;
+    current_orientation_throttle_stamped_.data.yaw = constrained_yaw_rate;
+
     return FcCommsReturns::kReturnOk;
 }
 
@@ -186,6 +194,25 @@ FcCommsReturns PX4FcComms::connect()
 
 FcCommsReturns PX4FcComms::handleComms()
 {
+    // PX4 requires a constant stream of messages to avoid entering failsafe
+    mavros_msgs::AttitudeTarget att;
+    att.header.stamp = ros::Time::now();
+
+    // Ignore roll and pith. Yaw is still needed.
+    att.type_mask = att.IGNORE_ROLL_RATE | att.IGNORE_PITCH_RATE;
+
+    tf2::Quaternion desired_orientation;
+    desired_orientation.setEuler(0.0,
+                                 current_orientation_throttle_stamped_.data.pitch,
+                                 current_orientation_throttle_stamped_.data.roll);
+
+    tf2::convert(desired_orientation, att.orientation);
+
+    att.body_rate.z = current_orientation_throttle_stamped_.data.yaw;
+    att.thrust = current_orientation_throttle_stamped_.throttle;
+
+    mavros_attitude_pub_.publish(att);
+
     return FcCommsReturns::kReturnOk;
 }
 

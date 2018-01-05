@@ -19,6 +19,7 @@
 #include "iarc7_msgs/OrientationThrottleStamped.h"
 
 #include <geometry_msgs/PoseStamped.h>
+#include <mavros_msgs/AttitudeTarget.h>
 #include <mavros_msgs/CommandBool.h>
 #include <mavros_msgs/SetMode.h>
 #include <mavros_msgs/State.h>
@@ -109,8 +110,8 @@ namespace FcComms
         // Subscriber for the orientation
         ros::Subscriber mavros_imu_sub_;
 
-        // Pose publisher
-        ros::Publisher mavros_local_pos_pub_;
+        // Attitude publisher
+        ros::Publisher mavros_attitude_pub_;
 
         // Mavros arming service
         ros::ServiceClient mavros_arming_client_;
@@ -127,8 +128,9 @@ namespace FcComms
         // Current imu message
         sensor_msgs::Imu mavros_imu_;
 
-        // FC implementation specific to hold intermediate rc values
-        uint16_t translated_rc_values_[8]{0};
+        // Current orientation throttle cammed
+        iarc7_msgs::OrientationThrottleStamped 
+            current_orientation_throttle_stamped_;
     };
 } // End namspace
 
