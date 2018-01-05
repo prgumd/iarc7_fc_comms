@@ -113,7 +113,7 @@ FcCommsReturns PX4FcComms::postArm(bool)
 FcCommsReturns PX4FcComms::getIMU(double (&)[3], double(&)[3])
 {
     // This node does not publish the IMU so just return nothing
-    ROS_WARN("PX4 Fc Comms called getIMU");
+    ROS_WARN("PX4 Fc Comms called getIMU which should never happen");
     return FcCommsReturns::kReturnError;
 }
 
@@ -123,9 +123,11 @@ FcCommsReturns PX4FcComms::isAutoPilotAllowed(bool& allowed)
     return FcCommsReturns::kReturnOk;
 }
 
-FcCommsReturns PX4FcComms::getBattery(float& )
+FcCommsReturns PX4FcComms::getBattery(float&)
 {
-    return FcCommsReturns::kReturnOk;
+    // This node does not publish the battery so just return nothing
+    ROS_WARN("PX4 Fc Comms called getBattery which should never happen");
+    return FcCommsReturns::kReturnError;
 }
 
 FcCommsReturns PX4FcComms::isArmed(bool& armed)
