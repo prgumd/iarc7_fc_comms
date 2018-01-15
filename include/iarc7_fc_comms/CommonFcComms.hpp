@@ -20,7 +20,6 @@
 #include "iarc7_msgs/BoolStamped.h"
 #include "iarc7_msgs/FlightControllerStatus.h"
 #include "iarc7_msgs/Float64Stamped.h"
-#include "iarc7_msgs/LandingGearContactsStamped.h"
 #include "iarc7_msgs/OrientationAnglesStamped.h"
 #include "iarc7_msgs/OrientationThrottleStamped.h"
 #include <ros_utils/ParamUtils.hpp>
@@ -101,9 +100,9 @@ namespace FcComms{
             have_new_direction_command_message_ = true;
         }
 
-        inline void contactSwitchMessageHandler(
-                const iarc7_msgs::LandingGearContactsStamped::ConstPtr& message) {
-            last_contact_switch_message_ptr_ = message;
+        inline void landingDetectedMessageHandler(
+                const iarc7_msgs::BoolStamped::ConstPtr& message) {
+            last_landing_detected_message_ptr_ = message;
         }
 
         bool uavArmServiceHandler(
@@ -131,17 +130,17 @@ namespace FcComms{
         // Subscriber for uav_angle values
         ros::Subscriber uav_angle_subscriber;
 
-        // Subscriber for the contact switch values
-        ros::Subscriber contact_switch_subscriber;
+        // Subscriber for landing detection
+        ros::Subscriber landing_detected_subscriber;
 
         // Service to arm copter
         ros::ServiceServer uav_arm_service;
 
         iarc7_msgs::OrientationThrottleStamped::ConstPtr last_direction_command_message_ptr_;
 
-        iarc7_msgs::LandingGearContactsStamped::ConstPtr last_contact_switch_message_ptr_;
+        iarc7_msgs::BoolStamped::ConstPtr last_landing_detected_message_ptr_;
 
-        ros::Duration valid_contact_switch_message_delay_;
+        ros::Duration valid_landing_detected_message_delay_;
 
         ros::Duration orientation_timestamp_offset_;
 
@@ -184,11 +183,11 @@ imu_publisher(),
 orientation_pub_(),
 flightControlImpl_(),
 uav_angle_subscriber(),
-contact_switch_subscriber(),
+landing_detected_subscriber(),
 uav_arm_service(),
 last_direction_command_message_ptr_(),
-last_contact_switch_message_ptr_(),
-valid_contact_switch_message_delay_(),
+last_landing_detected_message_ptr_(),
+valid_landing_detected_message_delay_(),
 orientation_timestamp_offset_()
 {
     if (ros_utils::ParamUtils::getParam<bool>(private_nh_,
@@ -204,9 +203,9 @@ orientation_timestamp_offset_()
                             ros_utils::ParamUtils::getParam<bool>(
                             private_nh_, "calibrate_accelerometer");
 
-    valid_contact_switch_message_delay_ = ros::Duration(
+    valid_landing_detected_message_delay_ = ros::Duration(
                         ros_utils::ParamUtils::getParam<double>(
-                        private_nh_, "valid_contact_switch_message_delay"));
+                        private_nh_, "valid_landing_detected_message_delay"));
 
     orientation_timestamp_offset_ = ros::Duration(
                                   ros_utils::ParamUtils::getParam<double>(
@@ -277,10 +276,10 @@ FcCommsReturns CommonFcComms<T>::init()
         return FcCommsReturns::kReturnError;
     }
 
-    contact_switch_subscriber = nh_.subscribe("landing_gear_contact_switches",
-                                         100,
-                                         &CommonFcComms::contactSwitchMessageHandler,
-                                         this);
+    landing_detected_subscriber = nh_.subscribe("landing_detected",
+                                        100,
+                                        &CommonFcComms::landingDetectedMessageHandler,
+                                        this);
 
     ROS_INFO("FC Comms registered and subscribed to topics");
 
@@ -288,22 +287,22 @@ FcCommsReturns CommonFcComms<T>::init()
     {
         const ros::Time start_time = ros::Time::now();
         while (ros::ok()
-               && last_contact_switch_message_ptr_ == nullptr
+               && last_landing_detected_message_ptr_ == nullptr
                && ros::Time::now()
                   < start_time
-                    + ros::Duration(CommonConf::kContactSwitchStartupTimeout)) {
+                    + ros::Duration(CommonConf::kLandingDetectedStartupTimeout)) {
             ros::spinOnce();
             ros::Duration(0.005).sleep();
         }
 
-        if (last_contact_switch_message_ptr_ == nullptr)
+        if (last_landing_detected_message_ptr_ == nullptr)
         {
-            ROS_ERROR("Contact switch message not received within the startup timeout");
+            ROS_ERROR("Landing detected message not received within the startup timeout");
             return FcCommsReturns::kReturnError;
         }
         else
         {
-            ROS_INFO("FC Comms received initial contact switch message succesfully");
+            ROS_INFO("FC Comms received initial landing detected message succesfully");
         }
 
     }
@@ -577,13 +576,10 @@ void CommonFcComms<T>::calibrateAccelerometer()
 {
     if(calibrate_accelerometer_)
     {
-        if(last_contact_switch_message_ptr_->header.stamp
-           > ros::Time::now() - valid_contact_switch_message_delay_)
+        if(last_landing_detected_message_ptr_->header.stamp
+           > ros::Time::now() - valid_landing_detected_message_delay_)
         {
-            if(last_contact_switch_message_ptr_->front
-                && last_contact_switch_message_ptr_->back
-                && last_contact_switch_message_ptr_->right
-                && last_contact_switch_message_ptr_->left)
+            if(last_landing_detected_message_ptr_->data)
             {
                 FcCommsReturns status{FcCommsReturns::kReturnOk};
 
@@ -601,7 +597,7 @@ void CommonFcComms<T>::calibrateAccelerometer()
         }
         else
         {
-            ROS_ERROR("Skipping accleration calibration. No contact message within timeout");
+            ROS_ERROR("Skipping accelerometer calibration. No landing detected message within timeout");
         }
     }
 }
