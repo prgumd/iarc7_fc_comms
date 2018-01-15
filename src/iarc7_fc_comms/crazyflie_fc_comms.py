@@ -96,13 +96,15 @@ class CrazyflieFcComms:
         # Initialize the low-level drivers (don't list the debug drivers)
         cflib.crtp.init_drivers(enable_debug_driver=False)
 
-        while True:
+        scan_rate = rospy.Rate(2)
+        while not rospy.is_shutdown():
             # Use first Crazyflie found
             rospy.loginfo('Crazyflie FC Comms scanning for Crazyflies')
             crazyflies = cflib.crtp.scan_interfaces()
             if len(crazyflies) != 0:
                 break
             rospy.logerr('Crazyflie FC Comms could not find Crazyflie. Trying again.')
+            scan_rate.sleep()
 
         uri = crazyflies[0][0]
 
