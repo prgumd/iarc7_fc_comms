@@ -213,7 +213,7 @@ class CrazyflieFcComms:
                     # Keep the connection alive
                     self._cf.commander.send_setpoint(0, 0, 0, 0)
                 else:
-                    throttle = max(20000.0, self._uav_command.throttle * 65535.0)
+                    throttle = max(10000.0, self._uav_command.throttle * 65535.0)
                     self._cf.commander.send_setpoint(self._uav_command.data.roll * 180.0 / math.pi,
                                                      self._uav_command.data.pitch * 180.0 / math.pi,
                                                      -1.0 * self._uav_command.data.yaw * 180.0 / math.pi,
