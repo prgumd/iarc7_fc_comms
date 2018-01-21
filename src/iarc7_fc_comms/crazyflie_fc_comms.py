@@ -91,6 +91,8 @@ class CrazyflieFcComms:
         self._uav_arm_service = rospy.Service('uav_arm',
                                         Arm,
                                         self._arm_service_handler)
+        self._current_height = 0.0
+        self._over_height_counts = 0
 
     def run(self):
         # Initialize the low-level drivers (don't list the debug drivers)
@@ -193,6 +195,7 @@ class CrazyflieFcComms:
 
         # Update at the same rate as low level motion
         rate = rospy.Rate(60)
+
         while not rospy.is_shutdown() and self._connected:
             status = FlightControllerStatus()
             status.header.stamp = rospy.Time.now()
@@ -212,9 +215,13 @@ class CrazyflieFcComms:
                 self._cf.commander.send_setpoint(0, 0, 0, 0)
 
             if self._crash_detected:
-                rospy.logwarn_throttle(1.0, 'Crazyflie FC Comms detected crash, shut down motors')
+                rospy.logwarn_throttle(1.0, 'Crazyflie FC Comms detected crash')
                 self._commands_allowed = False
-                self._cf.commander.send_setpoint(0, 0, 0, 0)
+                if self._current_height > 0.15:
+                    self._cf.commander.send_setpoint(0, 0, 0, 0.47 * 65535)
+                else:
+                    rospy.logwarn_throttle(1.0, 'Crazyflie FC Comms shut down motors')
+                    self._cf.commander.send_setpoint(0, 0, 0, 0)
 
             if self._armed and self._commands_allowed:
                 if self._uav_command is None:
@@ -320,9 +327,15 @@ class CrazyflieFcComms:
                 range_msg.min_range = 0.01
                 range_msg.max_range = 1.6
 
-                range_msg.range = data['range.zrange'] / 1000.0
+                self._current_height = data['range.zrange'] / 1000.0
+                range_msg.range = self._current_height
 
                 if range_msg.range > 2.0:
+                    self._over_height_counts = self._over_height_counts + 1
+                else:
+                    self._over_height_counts = 0
+
+                if self._over_height_counts > 10:
                     rospy.logwarn('Crazyflie FC Comms maximimum height exceeded')
                     self._crash_detected = True
 
