@@ -218,7 +218,7 @@ class CrazyflieFcComms:
                 rospy.logwarn_throttle(1.0, 'Crazyflie FC Comms detected crash')
                 self._commands_allowed = False
                 if self._current_height > 0.15:
-                    self._cf.commander.send_setpoint(0, 0, 0, 0.47 * 65535)
+                    self._cf.commander.send_setpoint(0, 0, 0, 0.47 * 65535) # Max throttle is 65535
                 else:
                     rospy.logwarn_throttle(1.0, 'Crazyflie FC Comms shut down motors')
                     self._cf.commander.send_setpoint(0, 0, 0, 0)
@@ -228,7 +228,7 @@ class CrazyflieFcComms:
                     # Keep the connection alive
                     self._cf.commander.send_setpoint(0, 0, 0, 0)
                 else:
-                    throttle = max(10000.0, self._uav_command.throttle * 65535.0)
+                    throttle = max(10000.0, self._uav_command.throttle * 65535.0) # Max throttle is 65535
                     self._cf.commander.send_setpoint(self._uav_command.data.roll * 180.0 / math.pi,
                                                      self._uav_command.data.pitch * 180.0 / math.pi,
                                                      -1.0 * self._uav_command.data.yaw * 180.0 / math.pi,
