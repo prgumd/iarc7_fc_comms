@@ -47,6 +47,7 @@ class CrazyflieFcComms:
         self._uav_command = None
         self._vbat = None
         self._crash_detected = False
+        self._crash_landed = False
 
         # safety 
         self._safety_client = SafetyClient('fc_comms_crazyflie')
@@ -217,9 +218,10 @@ class CrazyflieFcComms:
             if self._crash_detected:
                 rospy.logwarn_throttle(1.0, 'Crazyflie FC Comms detected crash')
                 self._commands_allowed = False
-                if self._current_height > 0.15:
+                if self._current_height > 0.15 and not self._crash_landed:
                     self._cf.commander.send_setpoint(0, 0, 0, 0.47 * 65535) # Max throttle is 65535
                 else:
+                    self._crash_landed = True
                     rospy.logwarn_throttle(1.0, 'Crazyflie FC Comms shut down motors')
                     self._cf.commander.send_setpoint(0, 0, 0, 0)
 
@@ -299,7 +301,7 @@ class CrazyflieFcComms:
                 orientation.data.yaw = -0.0 * data['stabilizer.yaw'] * math.pi / 180.0
                 self._orientation_pub.publish(orientation)
 
-                if abs(orientation.data.roll) > 1.0 or abs(orientation.data.pitch) > 1.0:
+                if abs(orientation.data.roll) > 1.5 or abs(orientation.data.pitch) > 1.5:
                     rospy.logwarn('Crazyflie FC Comms maximimum attitude angle exceeded')
                     self._crash_detected = True
 
