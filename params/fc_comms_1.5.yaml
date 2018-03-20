@@ -15,5 +15,5 @@ valid_landing_detected_message_delay: 0.2
 imu_orientation_timestamp_offset: -0.00
 
 # Publish transform
-publish_orientation_transform: false
+publish_orientation_transform: true
 

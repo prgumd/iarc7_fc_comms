@@ -697,13 +697,13 @@ void CommonFcComms<T>::sendOrientation(double (&attitude)[3])
     if (publish_orientation_transform_) {
         geometry_msgs::TransformStamped transformStamped;
 
-        transformStamped.header.stamp = ros::Time::now();
+        transformStamped.header.stamp = ros::Time::now() + orientation_timestamp_offset_;
         transformStamped.header.frame_id = CommonConf::kTfParentName;
         transformStamped.child_frame_id = CommonConf::kTfChildName;
 
         tf2::Quaternion q;
        // This assumes the values are returned in the form roll pitch yaw in radians
-        q.setRPY(attitude[0], attitude[1], attitude[2]);
+        q.setRPY(attitude[0], attitude[1], -attitude[2]);
         transformStamped.transform.rotation.x = q.x();
         transformStamped.transform.rotation.y = q.y();
         transformStamped.transform.rotation.z = q.z();
