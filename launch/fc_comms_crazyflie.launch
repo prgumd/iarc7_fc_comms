@@ -3,8 +3,6 @@
     <arg name="battery_topic" default="fc_battery" />
 
     <node name="fc_comms_crazyflie" pkg="iarc7_fc_comms" type="crazyflie_fc_comms.py">
-        <rosparam command="load"
-            file="$(find iarc7_fc_comms)/params/fc_comms.yaml" />
         <remap from="fc_battery" to="/$(arg battery_topic)" />
     </node>
 

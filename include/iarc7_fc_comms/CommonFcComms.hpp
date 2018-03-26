@@ -14,6 +14,7 @@
 
 #include <ros/ros.h>
 #include <tf2/LinearMath/Quaternion.h>
+#include <tf2_ros/transform_broadcaster.h>
 
 #include "iarc7_safety/SafetyClient.hpp"
 #include "iarc7_msgs/Arm.h"
@@ -89,6 +90,7 @@ namespace FcComms{
         void publishFcStatus();
 
         // Send out the orientation data for the quad
+        // Can also send transform based on flag
         void sendOrientation(double (&attitude)[3]);
 
         // Send out the accelerations from the FC
@@ -126,6 +128,9 @@ namespace FcComms{
 
         // Just use the default constructor
         T flightControlImpl_;
+
+        // Broadcaster to send transforms with
+        tf2_ros::TransformBroadcaster transform_broadcaster_;
 
         // Subscriber for uav_angle values
         ros::Subscriber uav_angle_subscriber;
@@ -165,6 +170,8 @@ namespace FcComms{
 
         bool calibrate_accelerometer_ = false;
 
+        bool publish_orientation_transform_ = false;
+
         double initial_heading_offset_ = std::nan("");
 
     };
@@ -182,6 +189,7 @@ status_publisher(),
 imu_publisher(),
 orientation_pub_(),
 flightControlImpl_(),
+transform_broadcaster_(),
 uav_angle_subscriber(),
 landing_detected_subscriber(),
 uav_arm_service(),
@@ -202,6 +210,10 @@ orientation_timestamp_offset_()
     calibrate_accelerometer_ = 
                             ros_utils::ParamUtils::getParam<bool>(
                             private_nh_, "calibrate_accelerometer");
+
+    publish_orientation_transform_ = 
+                            ros_utils::ParamUtils::getParam<bool>(
+                            private_nh_, "publish_orientation_transform");
 
     valid_landing_detected_message_delay_ = ros::Duration(
                         ros_utils::ParamUtils::getParam<double>(
@@ -681,6 +693,24 @@ void CommonFcComms<T>::sendOrientation(double (&attitude)[3])
     orientation_msg.data.yaw = attitude[2];
 
     orientation_pub_.publish(orientation_msg);
+
+    if (publish_orientation_transform_) {
+        geometry_msgs::TransformStamped transformStamped;
+
+        transformStamped.header.stamp = ros::Time::now() + orientation_timestamp_offset_;
+        transformStamped.header.frame_id = CommonConf::kTfParentName;
+        transformStamped.child_frame_id = CommonConf::kTfChildName;
+
+        tf2::Quaternion q;
+       // This assumes the values are returned in the form roll pitch yaw in radians
+        q.setRPY(attitude[0], attitude[1], -attitude[2]);
+        transformStamped.transform.rotation.x = q.x();
+        transformStamped.transform.rotation.y = q.y();
+        transformStamped.transform.rotation.z = q.z();
+        transformStamped.transform.rotation.w = q.w();
+
+        transform_broadcaster_.sendTransform(transformStamped);
+    }
 }
 
 // Send out the accelerations from the quad FC
