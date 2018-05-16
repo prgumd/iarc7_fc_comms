@@ -121,11 +121,11 @@ FcCommsReturns MspFcComms::postArm(bool arm)
                                     * FcCommsMspConf::kMspThrottleScale
                                     + FcCommsMspConf::kMspStickStartPoint;
             translated_rc_values_[2] = min_throttle;
-            ros::Duration(0.02).sleep();
-
             if(sendRc() != FcCommsReturns::kReturnOk) {
                 return FcCommsReturns::kReturnError;
             }
+            ros::Duration(0.02).sleep();
+            ros::spinOnce();
         }
     }
     else {
