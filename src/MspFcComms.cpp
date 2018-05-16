@@ -109,12 +109,28 @@ FcCommsReturns MspFcComms::setArm(bool arm)
 
 FcCommsReturns MspFcComms::postArm(bool arm)
 {
-    // Set the throttle to the min throttle or off
-    uint16_t min_throttle = CommonConf::kMinAllowedThrottle
-                            * FcCommsMspConf::kMspThrottleScale
-                            + FcCommsMspConf::kMspStickStartPoint;
-    translated_rc_values_[2] = arm ?
-        min_throttle : FcCommsMspConf::kMspStickStartPoint;
+
+    if(arm) {
+        // Ramp the throttle from 0 to the minimum throttle in
+        // the hackiest, most blocking way possible
+        for(double throttle = 0;
+            throttle < CommonConf::kMinAllowedThrottle;
+            throttle += CommonConf::kMinAllowedThrottle / 50.0) {
+            // Set the throttle to the min throttle or off
+            uint16_t min_throttle = throttle
+                                    * FcCommsMspConf::kMspThrottleScale
+                                    + FcCommsMspConf::kMspStickStartPoint;
+            translated_rc_values_[2] = min_throttle;
+            ros::Duration(0.02).sleep();
+
+            if(sendRc() != FcCommsReturns::kReturnOk) {
+                return FcCommsReturns::kReturnError;
+            }
+        }
+    }
+    else {
+        translated_rc_values_[2] = FcCommsMspConf::kMspStickStartPoint;
+    }
 
     return sendRc();
 }
