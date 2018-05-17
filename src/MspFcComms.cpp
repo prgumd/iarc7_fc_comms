@@ -89,6 +89,27 @@ FcCommsReturns MspFcComms::processDirectionCommandMessage(
     double yaw_rate_output = (constrained_yaw_rate * FcCommsMspConf::kMspYawScale)
                            + FcCommsMspConf::kMspStickMidPoint;
 
+    if(ramp_throttle_zero_to_min_) {
+        // Ramp the throttle from 0 to the minimum throttle in
+        // the hackiest, most blocking way possible
+        for(double throttle = 0;
+            throttle < CommonConf::kMinAllowedThrottle;
+            throttle += CommonConf::kMinAllowedThrottle / 50.0) {
+            // Set the throttle to the min throttle or off
+            uint16_t min_throttle = throttle
+                                    * FcCommsMspConf::kMspThrottleScale
+                                    + FcCommsMspConf::kMspStickStartPoint;
+            translated_rc_values_[2] = min_throttle;
+            if(sendRc() != FcCommsReturns::kReturnOk) {
+                ramp_throttle_zero_to_min_ = false;
+                return FcCommsReturns::kReturnError;
+            }
+            ros::Duration(0.02).sleep();
+            ros::spinOnce();
+        }
+        ramp_throttle_zero_to_min_ = false;
+    }
+
     translated_rc_values_[0] = static_cast<uint16_t>(roll_output);
     translated_rc_values_[1] = static_cast<uint16_t>(pitch_output);
     translated_rc_values_[2] = static_cast<uint16_t>(throttle_output);
@@ -110,27 +131,8 @@ FcCommsReturns MspFcComms::setArm(bool arm)
 FcCommsReturns MspFcComms::postArm(bool arm)
 {
 
-    if(arm) {
-        // Ramp the throttle from 0 to the minimum throttle in
-        // the hackiest, most blocking way possible
-        for(double throttle = 0;
-            throttle < CommonConf::kMinAllowedThrottle;
-            throttle += CommonConf::kMinAllowedThrottle / 50.0) {
-            // Set the throttle to the min throttle or off
-            uint16_t min_throttle = throttle
-                                    * FcCommsMspConf::kMspThrottleScale
-                                    + FcCommsMspConf::kMspStickStartPoint;
-            translated_rc_values_[2] = min_throttle;
-            if(sendRc() != FcCommsReturns::kReturnOk) {
-                return FcCommsReturns::kReturnError;
-            }
-            ros::Duration(0.02).sleep();
-            ros::spinOnce();
-        }
-    }
-    else {
-        translated_rc_values_[2] = FcCommsMspConf::kMspStickStartPoint;
-    }
+    ramp_throttle_zero_to_min_ = arm;
+    translated_rc_values_[2] = FcCommsMspConf::kMspStickStartPoint;
 
     return sendRc();
 }

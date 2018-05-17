@@ -130,6 +130,8 @@ namespace FcComms
 
         // FC implementation specific to hold intermediate rc values
         uint16_t translated_rc_values_[8]{0};
+
+        bool ramp_throttle_zero_to_min_ = false;
     };
 } // End namspace
 
