@@ -240,9 +240,9 @@ CommonFcComms<T>& CommonFcComms<T>::getInstance()
 template<class T>
 FcCommsReturns CommonFcComms<T>::init()
 {
-    ROS_INFO("fc_comms_msp: Forming bond with safety client");
+    ROS_DEBUG("fc_comms_msp: Forming bond with safety client");
     ROS_ASSERT_MSG(safety_client_.formBond(), "fc_comms_msp: Could not form bond with safety client");
-    ROS_INFO("fc_comms_msp: Formed bond with safety client");
+    ROS_DEBUG("fc_comms_msp: Formed bond with safety client");
 
     uav_arm_service = nh_.advertiseService("uav_arm",
                                        &CommonFcComms::uavArmServiceHandler,
@@ -293,7 +293,7 @@ FcCommsReturns CommonFcComms<T>::init()
                                         &CommonFcComms::landingDetectedMessageHandler,
                                         this);
 
-    ROS_INFO("FC Comms registered and subscribed to topics");
+    ROS_DEBUG("FC Comms registered and subscribed to topics");
 
     if (calibrate_accelerometer_)
     {
@@ -314,7 +314,7 @@ FcCommsReturns CommonFcComms<T>::init()
         }
         else
         {
-            ROS_INFO("FC Comms received initial landing detected message succesfully");
+            ROS_DEBUG("FC Comms received initial landing detected message succesfully");
         }
 
     }
@@ -346,7 +346,7 @@ bool CommonFcComms<T>::uavArmServiceHandler(
                 iarc7_msgs::Arm::Request& request,
                 iarc7_msgs::Arm::Response& response)
 {
-    ROS_INFO("Uav arm service handler called");
+    ROS_DEBUG("Uav arm service handler called");
 
     bool auto_pilot;
     FcCommsReturns status = flightControlImpl_.isAutoPilotAllowed(auto_pilot);
@@ -358,7 +358,7 @@ bool CommonFcComms<T>::uavArmServiceHandler(
     // If auto pilot is not enabled we have no power
     if(!auto_pilot)
     {
-        ROS_INFO("Failed to arm or disarm the FC: auto pilot is disabled");
+        ROS_ERROR("Failed to arm or disarm the FC: auto pilot is disabled");
         response.success = false;
         response.message = "disabled";
         return true;
@@ -382,7 +382,7 @@ bool CommonFcComms<T>::uavArmServiceHandler(
         if (status == FcCommsReturns::kReturnOk) {
             if(armed == request.data)
             {
-                ROS_INFO("FC arm or disarm set succesfully");
+                ROS_DEBUG("FC arm or disarm set succesfully");
 
                 status = flightControlImpl_.postArm(request.data);
                 if(status != FcCommsReturns::kReturnOk) {
@@ -401,7 +401,7 @@ bool CommonFcComms<T>::uavArmServiceHandler(
         update();
     }
 
-    ROS_INFO("Failed to arm or disarm the FC: timed out");
+    ROS_ERROR("Failed to arm or disarm the FC: timed out");
     response.success = false;
     response.message = "timed out";
     return true;
@@ -573,7 +573,7 @@ void CommonFcComms<T>::reconnect() {
 
     if(status == FcCommsReturns::kReturnOk)
     {
-        ROS_INFO("iarc7_fc_comms: Succesful reconnection to flight controller");
+        ROS_DEBUG("iarc7_fc_comms: Succesful reconnection to flight controller");
         calibrateAccelerometer();
     }
     else

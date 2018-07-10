@@ -14,7 +14,7 @@ int main(int argc, char **argv)
 {
     ros::init(argc, argv, "FC_comms");
 
-    ROS_INFO("FC_comms begin");
+    ROS_DEBUG("FC_comms begin");
 
     CommonFcComms<MspFcComms>& fc = CommonFcComms<MspFcComms>::getInstance();
 

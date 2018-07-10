@@ -233,7 +233,7 @@ FcCommsReturns MspFcComms::getAttitude(double (&attitude)[3])
 
 FcCommsReturns MspFcComms::calibrateAccelerometer()
 {
-    ROS_INFO("Starting accelerometer calibration");
+    ROS_DEBUG("Starting accelerometer calibration");
     MSP_ACC_CALIBRATION cal;
     FcCommsReturns status = sendMessage(cal);
 
@@ -248,7 +248,7 @@ FcCommsReturns MspFcComms::calibrateAccelerometer()
         rate.sleep();
     }
 
-    ROS_INFO("Done accelerometer calibration");
+    ROS_DEBUG("Done accelerometer calibration");
 
     return status;
 }
@@ -256,7 +256,7 @@ FcCommsReturns MspFcComms::calibrateAccelerometer()
 // Disconnect from FC, should be called before destructor.
 FcCommsReturns MspFcComms::disconnect()
 {
-    ROS_INFO("Disconnecting from FC");
+    ROS_DEBUG("Disconnecting from FC");
 
     // Handle each connection state seperately.
     switch(fc_comms_status_)
@@ -281,7 +281,7 @@ FcCommsReturns MspFcComms::disconnect()
             return FcCommsReturns::kReturnError;
     }
 
-    ROS_INFO("Succesfull disconnection from FC");
+    ROS_DEBUG("Succesfull disconnection from FC");
 
     fc_comms_status_ = FcCommsStatus::kDisconnected;
     return FcCommsReturns::kReturnOk;
@@ -292,7 +292,7 @@ FcCommsReturns MspFcComms::connect()
 {
     try
     {
-        ROS_INFO("FC_Comms beginning connection");
+        ROS_DEBUG("FC_Comms beginning connection");
         fc_comms_status_ = FcCommsStatus::kConnecting;
 
         // Find the flight controller by the hardware ID.
@@ -325,7 +325,7 @@ FcCommsReturns MspFcComms::connect()
             rate.sleep();
         }
 
-        ROS_INFO("FC_Comms Connected to FC");
+        ROS_DEBUG("FC_Comms Connected to FC");
         fc_comms_status_ = FcCommsStatus::kConnected;
 
         return FcCommsReturns::kReturnOk;
@@ -377,7 +377,7 @@ FcCommsReturns MspFcComms::findFc(std::string& serial_port)
         // If we've found something with the same hardware id as our FC
         if(device.hardware_id == FcCommsMspConf::kHardwareId)
         {
-            ROS_INFO("FC_comms found target device.");
+            ROS_DEBUG("FC_comms found target device.");
             serial_port = device.port;
 
             // Exit loop since we've found the port
