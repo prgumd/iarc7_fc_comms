@@ -203,15 +203,15 @@ orientation_timestamp_offset_()
         sequenced_updates.push_back(&CommonFcComms::updateBattery);
     }
 
-    initial_heading_as_offset_ = 
+    initial_heading_as_offset_ =
                             ros_utils::ParamUtils::getParam<bool>(
                             private_nh_, "initial_heading_as_offset");
 
-    calibrate_accelerometer_ = 
+    calibrate_accelerometer_ =
                             ros_utils::ParamUtils::getParam<bool>(
                             private_nh_, "calibrate_accelerometer");
 
-    publish_orientation_transform_ = 
+    publish_orientation_transform_ =
                             ros_utils::ParamUtils::getParam<bool>(
                             private_nh_, "publish_orientation_transform");
 
@@ -551,7 +551,7 @@ template<class T>
 void CommonFcComms<T>::activateFcSafety()
 {
     FcCommsReturns status = flightControlImpl_.safetyLand();
-    
+
     if (status == FcCommsReturns::kReturnOk) {
         ROS_WARN("iarc7_fc_comms: succesfully sent safety land request");
     } else {
@@ -704,6 +704,20 @@ void CommonFcComms<T>::sendOrientation(double (&attitude)[3])
         tf2::Quaternion q;
        // This assumes the values are returned in the form roll pitch yaw in radians
         q.setRPY(attitude[0], attitude[1], -attitude[2]);
+        transformStamped.transform.rotation.x = q.x();
+        transformStamped.transform.rotation.y = q.y();
+        transformStamped.transform.rotation.z = q.z();
+        transformStamped.transform.rotation.w = q.w();
+
+        transform_broadcaster_.sendTransform(transformStamped);
+
+        transformStamped.header.stamp = ros::Time::now() + orientation_timestamp_offset_;
+        transformStamped.header.frame_id = CommonConf::kTfParentName;
+        transformStamped.child_frame_id = "heading_quad";
+
+        //tf2::Quaternion q;
+       // This assumes the values are returned in the form roll pitch yaw in radians
+        q.setRPY(0.0, 0.0, -attitude[2]);
         transformStamped.transform.rotation.x = q.x();
         transformStamped.transform.rotation.y = q.y();
         transformStamped.transform.rotation.z = q.z();
