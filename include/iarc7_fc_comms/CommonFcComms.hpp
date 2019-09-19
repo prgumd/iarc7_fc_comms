@@ -16,7 +16,6 @@
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_ros/transform_broadcaster.h>
 
-#include "iarc7_safety/SafetyClient.hpp"
 #include "iarc7_msgs/Arm.h"
 #include "iarc7_msgs/BoolStamped.h"
 #include "iarc7_msgs/FlightControllerStatus.h"
@@ -117,9 +116,6 @@ namespace FcComms{
         // NodeHandle in this node's namespace
         ros::NodeHandle private_nh_;
 
-        // Safety client
-        Iarc7Safety::SafetyClient safety_client_;
-
         // Publishers for FC sensors
         ros::Publisher battery_publisher;
         ros::Publisher status_publisher;
@@ -183,7 +179,6 @@ template<class T>
 CommonFcComms<T>::CommonFcComms() :
 nh_(),
 private_nh_("~"),
-safety_client_(nh_, "fc_comms_msp"),
 battery_publisher(),
 status_publisher(),
 imu_publisher(),
@@ -241,7 +236,6 @@ template<class T>
 FcCommsReturns CommonFcComms<T>::init()
 {
     ROS_DEBUG("fc_comms_msp: Forming bond with safety client");
-    ROS_ASSERT_MSG(safety_client_.formBond(), "fc_comms_msp: Could not form bond with safety client");
     ROS_DEBUG("fc_comms_msp: Formed bond with safety client");
 
     uav_arm_service = nh_.advertiseService("uav_arm",
@@ -563,7 +557,6 @@ void CommonFcComms<T>::activateFcSafety()
 template<class T>
 void CommonFcComms<T>::reconnect() {
     FcCommsReturns status;
-    ros::Time start_time = ros::Time::now();
 
     status = flightControlImpl_.disconnect();
     if(status == FcCommsReturns::kReturnOk)
@@ -620,9 +613,6 @@ void CommonFcComms<T>::update()
 {
     ros::Time times = ros::Time::now();
 
-    // Check the safety client before updating anything
-    ROS_ASSERT_MSG(!safety_client_.isFatalActive(), "iarc7_fc_comms: fatal event from safety");
-
     FcCommsReturns status;
 
     // Do different things based on the current connection status.
@@ -640,17 +630,9 @@ void CommonFcComms<T>::update()
                 ROS_ERROR("iarc7_fc_comms: flight controller impl could not handle comms");
             }
 
-            // Check if we need to have a safety response
-            if(safety_client_.isSafetyActive())
-            {
-                activateFcSafety();
-            }
-            else
-            {
-                updateDirection();
-                updateAttitude();
-                updateAccelerations();
-            }
+            updateDirection();
+            updateAttitude();
+            updateAccelerations();
 
             (this->*sequenced_updates[current_sequenced_update])();
             current_sequenced_update = (current_sequenced_update + 1) % sequenced_updates.size();
