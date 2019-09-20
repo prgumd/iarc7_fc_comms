@@ -6,7 +6,7 @@ initial_heading_as_offset: true
 
 # Calibrate the accelerometer every time the foot switches say
 # the drone is on the ground
-calibrate_accelerometer: true
+calibrate_accelerometer: false
 
 # Timeout for determining validity of contact switch messages
 valid_landing_detected_message_delay: 0.2

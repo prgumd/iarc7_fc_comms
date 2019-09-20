@@ -25,7 +25,7 @@ namespace FcComms
         static constexpr double kMspWaitForReplyTimeout{0.2};
 
         static constexpr char const * const kHardwareId
-            {"USB VID:PID=0483:5740 SNR=206438515533"};
+            {"USB VID:PID=0483:5740 SNR=0x8000000"};
 
         // Uncomment the line below to specify a particular serial port
         // instead of using the usb hardware id
