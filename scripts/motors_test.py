@@ -49,6 +49,7 @@ if __name__ == '__main__':
                 command.data.roll = 0.0
                 command.data.yaw = 0.0
                 command_pub.publish(command)
+                break
 
             rate.sleep()
 
@@ -60,4 +61,4 @@ if __name__ == '__main__':
                 rospy.logerr('Could not disarm: ' + str(exc))
         rospy.logerr('disarmed')
 
-        rospy.Time.sleep(2.0)
+        rospy.sleep(2.0)
