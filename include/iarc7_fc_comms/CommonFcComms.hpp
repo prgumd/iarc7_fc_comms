@@ -497,7 +497,20 @@ void CommonFcComms<T>::updateDirection()
 {
     FcCommsReturns status{FcCommsReturns::kReturnOk};
 
-    if(have_new_direction_command_message_ && fc_armed_)
+    // If not armed send a zero state direction command
+    // this ensures direction command state is such that
+    // arming passes
+    if(!fc_armed_) {
+        iarc7_msgs::OrientationThrottleStamped::ConstPtr zero_state_direction_ptr(
+            new iarc7_msgs::OrientationThrottleStamped());
+        status = flightControlImpl_.processDirectionCommandMessage(
+                     zero_state_direction_ptr);
+        if (status != FcCommsReturns::kReturnOk)
+        {
+            ROS_ERROR("iarc7_fc_comms: Failed to send direction message");
+        }
+    }
+    else if(have_new_direction_command_message_ && fc_armed_)
     {
         status = flightControlImpl_.processDirectionCommandMessage(
                      last_direction_command_message_ptr_);
