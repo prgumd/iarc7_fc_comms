@@ -6,7 +6,7 @@ import math
 
 from iarc7_msgs.msg import OrientationThrottleStamped
 from iarc7_msgs.msg import BoolStamped
-from iarc7_msgs.srv import Arm
+from iarc7_msgs.srv import Arm, ArmResponse
 
 from geometry_msgs.msg import TwistStamped
 
@@ -20,10 +20,9 @@ if __name__ == '__main__':
     command_pub = rospy.Publisher('uav_direction_command', OrientationThrottleStamped, queue_size=0)
 
     rate = rospy.Rate(30)
-    throttle = 0
     while not rospy.is_shutdown():
-        armed = False
-        while armed == False :
+        armed = ArmResponse()
+        while armed.success == False :
             try:
                 rospy.logerr('Trying to arm')
                 armed = arm_service(True)
@@ -34,6 +33,7 @@ if __name__ == '__main__':
         command = OrientationThrottleStamped()
         command.header.stamp = rospy.Time.now()
 
+        throttle = 0
         while not rospy.is_shutdown():
             # Three second throttle ramp and three seconds off
             throttle = (throttle + 1) % 150
@@ -53,7 +53,8 @@ if __name__ == '__main__':
 
             rate.sleep()
 
-        while armed == True :
+        armed.success = False
+        while armed.success == False:
             try:
                 rospy.logerr('Trying to disarm')
                 armed = arm_service(False)
