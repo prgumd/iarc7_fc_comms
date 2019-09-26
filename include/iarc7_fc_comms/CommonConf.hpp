@@ -36,7 +36,7 @@ struct CommonConf
     static constexpr const double kMaxAllowedRoll = 0.175;
     static constexpr const double kMinAllowedPitch = -0.175;
     static constexpr const double kMaxAllowedPitch = 0.175;
-    static constexpr const double kMinAllowedThrottle = 0.2;
+    static constexpr const double kMinAllowedThrottle = 0.0; // Do not set higher than 0 or arming will fail randomly
     static constexpr const double kMaxAllowedThrottle = 1.0;
     static constexpr const double kMinAllowedYawRate = -0.5;
     static constexpr const double kMaxAllowedYawRate = 0.5;
