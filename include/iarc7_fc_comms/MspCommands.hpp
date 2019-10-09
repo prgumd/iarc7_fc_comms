@@ -238,7 +238,7 @@ namespace FcComms
                 // We are also using a hacked up version of cleanflight that does not
                 // apply this scaling factor using a bitshift hack before sending so
                 // we need to do it here.
-                acc_values[i] = 9.8 * static_cast<double>(*temp)/(512.0 * 4.0);
+                acc_values[i] = 9.8 * static_cast<double>(*temp)/(512.0 * 1.0);
             }
         }
 
