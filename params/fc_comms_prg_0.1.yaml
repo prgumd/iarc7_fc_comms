@@ -17,3 +17,11 @@ imu_orientation_timestamp_offset: -0.00
 # Publish transform
 publish_orientation_transform: false
 
+# Variances
+imu_accel_x_var: 0.04
+imu_accel_y_var: 0.04
+imu_accel_z_var: 0.01
+
+imu_gyro_x_var: 0.0025
+imu_gyro_y_var: 0.0025
+imu_gyro_z_var: 0.0025

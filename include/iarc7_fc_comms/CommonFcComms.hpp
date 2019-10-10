@@ -170,6 +170,13 @@ namespace FcComms{
 
         double initial_heading_offset_ = std::nan("");
 
+        double imu_accel_x_var_ = 0.0f;
+        double imu_accel_y_var_ = 0.0f;
+        double imu_accel_z_var_ = 0.0f;
+
+        double imu_gyro_x_var_ = 0.0f;
+        double imu_gyro_y_var_ = 0.0f;
+        double imu_gyro_z_var_ = 0.0f;
     };
 }
 
@@ -191,7 +198,13 @@ uav_arm_service(),
 last_direction_command_message_ptr_(),
 last_landing_detected_message_ptr_(),
 valid_landing_detected_message_delay_(),
-orientation_timestamp_offset_()
+orientation_timestamp_offset_(),
+imu_accel_x_var_(),
+imu_accel_y_var_(),
+imu_accel_z_var_(),
+imu_gyro_x_var_(),
+imu_gyro_y_var_(),
+imu_gyro_z_var_()
 {
     if (ros_utils::ParamUtils::getParam<bool>(private_nh_,
                                               "publish_fc_battery")) {
@@ -218,6 +231,30 @@ orientation_timestamp_offset_()
                                   ros_utils::ParamUtils::getParam<double>(
                                   private_nh_,
                                   "imu_orientation_timestamp_offset"));
+
+    imu_accel_x_var_ = ros_utils::ParamUtils::getParam<double>(
+                                  private_nh_,
+                                  "imu_accel_x_var");
+
+    imu_accel_y_var_ = ros_utils::ParamUtils::getParam<double>(
+                                  private_nh_,
+                                  "imu_accel_y_var");
+
+    imu_accel_z_var_ = ros_utils::ParamUtils::getParam<double>(
+                                  private_nh_,
+                                  "imu_accel_z_var");
+
+    imu_gyro_x_var_ = ros_utils::ParamUtils::getParam<double>(
+                                  private_nh_,
+                                  "imu_gyro_x_var");
+
+    imu_gyro_y_var_ = ros_utils::ParamUtils::getParam<double>(
+                                  private_nh_,
+                                  "imu_gyro_y_var");
+
+    imu_gyro_z_var_ = ros_utils::ParamUtils::getParam<double>(
+                                  private_nh_,
+                                  "imu_gyro_z_var");
 }
 
 template<class T>
@@ -734,16 +771,18 @@ void CommonFcComms<T>::sendIMU(double (&accelerations)[3], double (&angular_velo
   imu.linear_acceleration.x = accelerations[0];
   imu.linear_acceleration.y = accelerations[1];
   imu.linear_acceleration.z = accelerations[2];
+  imu.linear_acceleration_covariance[0] = imu_accel_x_var_;
+  imu.linear_acceleration_covariance[4] = imu_accel_y_var_;
+  imu.linear_acceleration_covariance[8] = imu_accel_z_var_;
 
   imu.angular_velocity.x = angular_velocities[0];
   imu.angular_velocity.y = angular_velocities[1];
   imu.angular_velocity.z = angular_velocities[2];
+  imu.angular_velocity_covariance[0] = imu_gyro_x_var_;
+  imu.angular_velocity_covariance[4] = imu_gyro_y_var_;
+  imu.angular_velocity_covariance[8] = imu_gyro_z_var_;
 
   imu.orientation_covariance[0] = -1;
-  imu.angular_velocity_covariance[0] = -1;
-  imu.linear_acceleration_covariance[0] = CommonConf::kAccelerationVariance[0];
-  imu.linear_acceleration_covariance[4] = CommonConf::kAccelerationVariance[1];
-  imu.linear_acceleration_covariance[8] = CommonConf::kAccelerationVariance[2];
 
   imu_publisher.publish(imu);
 }
