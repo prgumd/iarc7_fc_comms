@@ -145,6 +145,8 @@ namespace FcComms{
 
         ros::Duration orientation_timestamp_offset_;
 
+        ros::Duration imu_timestamp_offset_;
+
         bool have_new_direction_command_message_ = false;
 
         typedef void (CommonFcComms::*CommonFcCommsMemFn)();
@@ -199,6 +201,7 @@ last_direction_command_message_ptr_(),
 last_landing_detected_message_ptr_(),
 valid_landing_detected_message_delay_(),
 orientation_timestamp_offset_(),
+imu_timestamp_offset_(),
 imu_accel_x_var_(),
 imu_accel_y_var_(),
 imu_accel_z_var_(),
@@ -231,6 +234,11 @@ imu_gyro_z_var_()
                                   ros_utils::ParamUtils::getParam<double>(
                                   private_nh_,
                                   "imu_orientation_timestamp_offset"));
+
+    imu_timestamp_offset_ = ros::Duration(
+                                  ros_utils::ParamUtils::getParam<double>(
+                                  private_nh_,
+                                  "imu_timestamp_offset"));
 
     imu_accel_x_var_ = ros_utils::ParamUtils::getParam<double>(
                                   private_nh_,
@@ -765,7 +773,7 @@ void CommonFcComms<T>::sendIMU(double (&accelerations)[3], double (&angular_velo
 {
   sensor_msgs::Imu imu;
 
-  imu.header.stamp = ros::Time::now();
+  imu.header.stamp = ros::Time::now() + imu_timestamp_offset_;
   imu.header.frame_id = CommonConf::kTfChildName;
 
   imu.linear_acceleration.x = accelerations[0];
