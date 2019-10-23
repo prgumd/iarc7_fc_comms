@@ -15,7 +15,7 @@ valid_landing_detected_message_delay: 0.2
 imu_orientation_timestamp_offset: -0.00
 
 # Offset for timestamping IMU messages
-imu_timestamp_offset: -0.05
+imu_timestamp_offset: -0.00
 
 # Publish transform
 publish_orientation_transform: false
