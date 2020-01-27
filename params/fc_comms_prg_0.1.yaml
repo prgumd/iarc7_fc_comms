@@ -8,9 +8,6 @@ initial_heading_as_offset: true
 # the drone is on the ground
 calibrate_accelerometer: false
 
-# Timeout for determining validity of contact switch messages
-valid_landing_detected_message_delay: 0.2
-
 # Offset for timestamping orientation messages due to filter delay on the FC
 imu_orientation_timestamp_offset: -0.00
 

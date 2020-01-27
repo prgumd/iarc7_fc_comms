@@ -17,7 +17,6 @@
 #include <tf2_ros/transform_broadcaster.h>
 
 #include "iarc7_msgs/Arm.h"
-#include "iarc7_msgs/BoolStamped.h"
 #include "iarc7_msgs/FlightControllerStatus.h"
 #include "iarc7_msgs/Float64Stamped.h"
 #include "iarc7_msgs/OrientationAnglesStamped.h"
@@ -101,11 +100,6 @@ namespace FcComms{
             have_new_direction_command_message_ = true;
         }
 
-        inline void landingDetectedMessageHandler(
-                const iarc7_msgs::BoolStamped::ConstPtr& message) {
-            last_landing_detected_message_ptr_ = message;
-        }
-
         bool uavArmServiceHandler(
                 iarc7_msgs::Arm::Request& request,
                 iarc7_msgs::Arm::Response& response);
@@ -131,17 +125,10 @@ namespace FcComms{
         // Subscriber for uav_angle values
         ros::Subscriber uav_angle_subscriber;
 
-        // Subscriber for landing detection
-        ros::Subscriber landing_detected_subscriber;
-
         // Service to arm copter
         ros::ServiceServer uav_arm_service;
 
         iarc7_msgs::OrientationThrottleStamped::ConstPtr last_direction_command_message_ptr_;
-
-        iarc7_msgs::BoolStamped::ConstPtr last_landing_detected_message_ptr_;
-
-        ros::Duration valid_landing_detected_message_delay_;
 
         ros::Duration orientation_timestamp_offset_;
 
@@ -195,11 +182,8 @@ orientation_pub_(),
 flightControlImpl_(),
 transform_broadcaster_(),
 uav_angle_subscriber(),
-landing_detected_subscriber(),
 uav_arm_service(),
 last_direction_command_message_ptr_(),
-last_landing_detected_message_ptr_(),
-valid_landing_detected_message_delay_(),
 orientation_timestamp_offset_(),
 imu_timestamp_offset_(),
 imu_accel_x_var_(),
@@ -225,10 +209,6 @@ imu_gyro_z_var_()
     publish_orientation_transform_ =
                             ros_utils::ParamUtils::getParam<bool>(
                             private_nh_, "publish_orientation_transform");
-
-    valid_landing_detected_message_delay_ = ros::Duration(
-                        ros_utils::ParamUtils::getParam<double>(
-                        private_nh_, "valid_landing_detected_message_delay"));
 
     orientation_timestamp_offset_ = ros::Duration(
                                   ros_utils::ParamUtils::getParam<double>(
@@ -327,36 +307,7 @@ FcCommsReturns CommonFcComms<T>::init()
         return FcCommsReturns::kReturnError;
     }
 
-    landing_detected_subscriber = nh_.subscribe("landing_detected",
-                                        100,
-                                        &CommonFcComms::landingDetectedMessageHandler,
-                                        this);
-
     ROS_DEBUG("FC Comms registered and subscribed to topics");
-
-    if (calibrate_accelerometer_)
-    {
-        const ros::Time start_time = ros::Time::now();
-        while (ros::ok()
-               && last_landing_detected_message_ptr_ == nullptr
-               && ros::Time::now()
-                  < start_time
-                    + ros::Duration(CommonConf::kLandingDetectedStartupTimeout)) {
-            ros::spinOnce();
-            ros::Duration(0.005).sleep();
-        }
-
-        if (last_landing_detected_message_ptr_ == nullptr)
-        {
-            ROS_ERROR("Landing detected message not received within the startup timeout");
-            return FcCommsReturns::kReturnError;
-        }
-        else
-        {
-            ROS_DEBUG("FC Comms received initial landing detected message succesfully");
-        }
-
-    }
 
     return FcCommsReturns::kReturnOk;
 }
@@ -639,28 +590,13 @@ void CommonFcComms<T>::calibrateAccelerometer()
 {
     if(calibrate_accelerometer_)
     {
-        if(last_landing_detected_message_ptr_->header.stamp
-           > ros::Time::now() - valid_landing_detected_message_delay_)
-        {
-            if(last_landing_detected_message_ptr_->data)
-            {
-                FcCommsReturns status{FcCommsReturns::kReturnOk};
+        FcCommsReturns status{FcCommsReturns::kReturnOk};
 
-                status = flightControlImpl_.calibrateAccelerometer();
+        status = flightControlImpl_.calibrateAccelerometer();
 
-                if (status != FcCommsReturns::kReturnOk)
-                {
-                    ROS_ERROR("iarc7_fc_comms: Failed to calibrate accelerometer");
-                }
-            }
-            else
-            {
-                ROS_WARN("Can't calibrate accelerometer, not on ground");
-            }
-        }
-        else
+        if (status != FcCommsReturns::kReturnOk)
         {
-            ROS_ERROR("Skipping accelerometer calibration. No landing detected message within timeout");
+            ROS_ERROR("iarc7_fc_comms: Failed to calibrate accelerometer");
         }
     }
 }
